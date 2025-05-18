@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Validar Ingresso</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Validar Ingresso</h1>
+    <form id="validar-ingresso-form">
+        <label for="codigo-ingresso">Código do Ingresso:</label>
+        <input type="text" id="codigo-ingresso" name="codigo-ingresso"><br><br>
+        <button id="validar-ingresso-btn">Validar Ingresso</button>
+    </form>
+    <div id="resultado-validacao"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
+style.css
+
+body {
+    font-family: Arial, sans-serif;
+}
+
+nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+nav li {
+    display: inline-block;
+    margin-right: 20px;
+}
+
+nav a {
+    text-decoration: none;
+    color: #337ab7;
+}
+
+nav a:hover {
+    color: #23527c;
+}
+
+#gerar-ingresso-form {
+    width: 50%;
+    margin: 40px auto;
+}
+
+#ingresso-gerado {
+    margin-top: 20px;
+}
+
+#validar-ingresso-form {
+    width: 50%;
+    margin: 40px auto;
+}
+
+#resultado-validacao {
+    margin-top: 20px;
+}
+
+
+

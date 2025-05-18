@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Ingressos Online</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    
+    <h2>Gerar Ingresso</h2>
+    <input type="text" id="nome" placeholder="Seu nome">
+    <input type="text" id="evento" placeholder="Nome do evento" value="retrogamerday">
+    <label>Imagem de fundo do ingresso:</label>
+    <select id="fundo-ingresso">
+        <option value="fundo1.jpg">Fundo 1</option>
+        <option value="fundo2.jpg">Fundo 2</option>
+        <option value="fundo3.jpg">Fundo 3</option>
+    </select>
+    <button onclick="gerarIngresso(
+        document.getElementById('nome').value,
+        document.getElementById('evento').value,
+        document.getElementById('fundo-ingresso').value
+    )">Gerar</button>
+    <div id="ingresso-gerado"></div>
+    <button onclick="exportarIngressosParaExcel()" style="margin-top:12px;">Exportar Ingressos para Excel</button>
+    <button onclick="apagarTodosIngressos()" style="margin-top:12px; background:#c00; color:#fff;">Apagar Todos os Ingressos</button>
+
+    <h2>Validar Ingresso</h2>
+    <input type="text" id="codigo" placeholder="Código do ingresso">
+    <button onclick="validarIngresso(
+        document.getElementById('codigo').value
+    )">Validar</button>
+    <div id="resultado-validacao"></div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top:8px;">
+        <button onclick="abrirLeitorQrCode()">Validar por QR Code (Câmera)</button>
+        <div id="leitor-qrcode" style="width: 180px; height: 180px;"></div>
+    </div>
+
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
