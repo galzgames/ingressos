@@ -104,7 +104,7 @@
             <button onclick="cadastrarUsuario()">Cadastrar Usuário</button>
         </div>
         <div class="user-list" id="user-list"></div>
-        <button class="logout-btn" onclick="logoutAdmin()">Sair</button>
+        <button class="logout-btn" onclick="localStorage.removeItem('adminLogado'); location.reload();">Sair</button>
     </div>
 
     <script>
