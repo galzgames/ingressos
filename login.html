@@ -104,9 +104,11 @@
             <button onclick="cadastrarUsuario()">Cadastrar Usuário</button>
         </div>
         <div class="user-list" id="user-list"></div>
-        <button class="logout-btn" onclick="localStorage.removeItem('adminLogado'); location.reload();">Sair</button>
+        <button class="logout-btn" onclick="logoutAdmin()">Sair</button>
     </div>
 
+    <audio id="audio-conectado" src="audio/conectado.mp3"></audio>
+    <audio id="audio-logout" src="audio/logout.mp3"></audio>
     <script>
         // Usuário master (admin principal)
         const masterAdmin = { usuario: "admin", senha: "123456" };
@@ -129,10 +131,13 @@
             // Se for admin master, mostra painel de cadastro
             if (usuario === masterAdmin.usuario && senha === masterAdmin.senha) {
                 localStorage.setItem('adminLogado', 'true');
-                document.getElementById('login-container').style.display = 'none';
-                document.getElementById('admin-panel').style.display = 'flex';
-                erro.textContent = "";
-                mostrarUsuarios();
+                document.getElementById('audio-conectado').play();
+                setTimeout(function() {
+                    document.getElementById('login-container').style.display = 'none';
+                    document.getElementById('admin-panel').style.display = 'flex';
+                    erro.textContent = "";
+                    mostrarUsuarios();
+                }, 600); // tempo para o áudio tocar
                 return;
             }
 
@@ -142,7 +147,10 @@
 
             if (autorizado) {
                 localStorage.setItem('adminLogado', 'true');
-                window.location.href = "index.html";
+                document.getElementById('audio-conectado').play();
+                setTimeout(function() {
+                    window.location.href = "index.html";
+                }, 600); // tempo para o áudio tocar
             } else {
                 erro.textContent = "Usuário ou senha inválidos!";
             }
@@ -183,9 +191,12 @@
         }
 
         function logoutAdmin() {
-            localStorage.removeItem('adminLogado');
-            document.getElementById('admin-panel').style.display = 'none';
-            document.getElementById('login-container').style.display = 'flex';
+            document.getElementById('audio-logout').play();
+            setTimeout(function() {
+                localStorage.removeItem('adminLogado');
+                document.getElementById('admin-panel').style.display = 'none';
+                document.getElementById('login-container').style.display = 'flex';
+            }, 600); // tempo para o áudio tocar
         }
 
         // Se já estiver logado como admin master, mostra painel
