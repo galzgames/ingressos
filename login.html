@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Login Administrador - Ingressos Online</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            min-height: 100vh;
+            background: url('https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=1500&q=80') no-repeat center center fixed;
+            background-size: cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-container {
+            background: rgba(20, 20, 30, 0.95);
+            border-radius: 16px;
+            padding: 32px 24px;
+            box-shadow: 0 8px 40px #000b;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 340px;
+            width: 100%;
+        }
+        .login-container h2 {
+            color: #fff;
+            margin-bottom: 18px;
+        }
+        .login-container input {
+            width: 100%;
+            margin-bottom: 14px;
+            padding: 10px;
+            border-radius: 6px;
+            border: none;
+            font-size: 1rem;
+        }
+        .login-container button {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: none;
+            background: #1e1e2f;
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+        .login-container button:hover {
+            background: #3a3a5a;
+        }
+        .login-error {
+            color: #ff4444;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .admin-panel {
+            margin-top: 24px;
+            background: rgba(40,40,60,0.95);
+            border-radius: 10px;
+            padding: 18px 12px;
+            width: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+        .admin-panel h3 {
+            color: #fff;
+            margin-bottom: 10px;
+        }
+        .user-list {
+            color: #fff;
+            font-size: 0.95rem;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        .user-list span {
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .logout-btn {
+            background: #c00;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container" id="login-container">
+        <h2>Login Administrador</h2>
+        <div id="login-error" class="login-error"></div>
+        <input type="text" id="admin-usuario" placeholder="Usuário" autocomplete="username">
+        <input type="password" id="admin-senha" placeholder="Senha" autocomplete="current-password">
+        <button onclick="loginAdmin()">Entrar</button>
+    </div>
+
+    <div class="admin-panel" id="admin-panel">
+        <h3>Painel do Administrador</h3>
+        <div>
+            <input type="text" id="novo-usuario" placeholder="Novo usuário">
+            <input type="password" id="nova-senha" placeholder="Nova senha">
+            <button onclick="cadastrarUsuario()">Cadastrar Usuário</button>
+        </div>
+        <div class="user-list" id="user-list"></div>
+        <button class="logout-btn" onclick="logoutAdmin()">Sair</button>
+    </div>
+
+    <script>
+        // Usuário master (admin principal)
+        const masterAdmin = { usuario: "admin", senha: "123456" };
+
+        // Carrega usuários cadastrados do localStorage
+        function getUsuarios() {
+            const usuarios = localStorage.getItem('usuariosAutorizados');
+            return usuarios ? JSON.parse(usuarios) : [];
+        }
+
+        function setUsuarios(usuarios) {
+            localStorage.setItem('usuariosAutorizados', JSON.stringify(usuarios));
+        }
+
+        function loginAdmin() {
+            const usuario = document.getElementById('admin-usuario').value.trim();
+            const senha = document.getElementById('admin-senha').value.trim();
+            const erro = document.getElementById('login-error');
+
+            // Se for admin master, mostra painel de cadastro
+            if (usuario === masterAdmin.usuario && senha === masterAdmin.senha) {
+                localStorage.setItem('adminLogado', 'true');
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('admin-panel').style.display = 'flex';
+                erro.textContent = "";
+                mostrarUsuarios();
+                return;
+            }
+
+            // Verifica usuários cadastrados
+            const usuarios = getUsuarios();
+            const autorizado = usuarios.some(u => u.usuario === usuario && u.senha === senha);
+
+            if (autorizado) {
+                localStorage.setItem('adminLogado', 'true');
+                window.location.href = "index.html";
+            } else {
+                erro.textContent = "Usuário ou senha inválidos!";
+            }
+        }
+
+        function cadastrarUsuario() {
+            const novoUsuario = document.getElementById('novo-usuario').value.trim();
+            const novaSenha = document.getElementById('nova-senha').value.trim();
+            const erro = document.getElementById('login-error');
+            if (!novoUsuario || !novaSenha) {
+                erro.textContent = "Preencha usuário e senha para cadastrar.";
+                return;
+            }
+            let usuarios = getUsuarios();
+            if (usuarios.some(u => u.usuario === novoUsuario)) {
+                erro.textContent = "Usuário já cadastrado!";
+                return;
+            }
+            usuarios.push({ usuario: novoUsuario, senha: novaSenha });
+            setUsuarios(usuarios);
+            erro.textContent = "Usuário cadastrado com sucesso!";
+            document.getElementById('novo-usuario').value = "";
+            document.getElementById('nova-senha').value = "";
+            mostrarUsuarios();
+        }
+
+        function mostrarUsuarios() {
+            const usuarios = getUsuarios();
+            const lista = usuarios.map(u => `<span>${u.usuario}</span> <button onclick="removerUsuario('${u.usuario}')">Remover</button>`).join("<br>");
+            document.getElementById('user-list').innerHTML = usuarios.length ? lista : "<i>Nenhum usuário cadastrado.</i>";
+        }
+
+        function removerUsuario(usuario) {
+            let usuarios = getUsuarios();
+            usuarios = usuarios.filter(u => u.usuario !== usuario);
+            setUsuarios(usuarios);
+            mostrarUsuarios();
+        }
+
+        function logoutAdmin() {
+            localStorage.removeItem('adminLogado');
+            document.getElementById('admin-panel').style.display = 'none';
+            document.getElementById('login-container').style.display = 'flex';
+        }
+
+        // Se já estiver logado como admin master, mostra painel
+        window.onload = function() {
+            if (localStorage.getItem('adminLogado') === 'true' && window.location.search !== "?user") {
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('admin-panel').style.display = 'flex';
+                mostrarUsuarios();
+            }
+        }
+    </script>
+</body>
+</html>
