@@ -1,6 +1,6 @@
 // Adicione estas linhas no início do seu script.js (após outras funções ou no topo):
-const audioSucesso = new Audio('https://cdn.pixabay.com/audio/2022/03/15/audio_115b9bfae2.mp3'); // Som positivo
-const audioErro = new Audio('https://cdn.pixabay.com/audio/2022/03/15/audio_115b9bfae2.mp3'); // Som negativo (pode trocar por outro link se quiser)
+const audioSucesso = new Audio('audio/bip.mp3'); // Som positivo
+const audioErro = new Audio('audio/negativo.mp3'); // Som negativo (pode trocar por outro link se quiser)
 
 // Função para gerar ingresso
 function gerarIngresso(nome, evento, fundo) {
@@ -21,8 +21,9 @@ function gerarIngresso(nome, evento, fundo) {
         <button onclick="imprimirIngresso()" style="margin-bottom:16px;">Imprimir Ingresso</button>
         <div id="area-impressao" style="
             display: flex; 
+            flex-direction: row;
             align-items: center; 
-            justify-content: center;
+            justify-content: space-between;
             border: 2px solid #333; 
             border-radius: 12px; 
             padding: 12px; 
@@ -34,14 +35,21 @@ function gerarIngresso(nome, evento, fundo) {
             margin-bottom: 16px;
             box-sizing: border-box;
         ">
-            <img src="logo.png" alt="Logo do Evento" style="width: 80px; height: 80px; object-fit: contain; margin-right: 16px; border-radius: 8px; border: 1px solid #ccc; background: #f9f9f9;">
-            <div style="flex:1; color: #fff; font-weight: bold; text-shadow: 1px 1px 4px #000; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;">
+            <!-- Logo à esquerda -->
+            <div style="display: flex; align-items: center; justify-content: center; height: 100%; min-width: 70px;">
+                <img src="logo.png" alt="Logo do Evento" style="width: 70px; height: 70px; object-fit: contain; border-radius: 8px; border: 1px solid #ccc; background: #f9f9f9;">
+            </div>
+            <!-- Dados ao centro -->
+            <div style="flex:1; color: #fff; font-weight: bold; text-shadow: 1px 1px 4px #000; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 120px;">
                 <h3 style="margin-top:0; margin-bottom: 8px;">Ingresso</h3>
                 <p style="margin: 2px 0;"><strong>Nome:</strong> ${nome}</p>
                 <p style="margin: 2px 0;"><strong>Evento:</strong> ${evento}</p>
                 <p style="margin: 2px 0;"><strong>Código:</strong> ${codigoIngresso}</p>
             </div>
-            <div id="qrcode" style="margin-left: 16px; display: flex; align-items: center; border: 2px solid #fff; border-radius: 8px; background: #222; padding: 6px;"></div>
+            <!-- QR Code à direita -->
+            <div style="display: flex; align-items: center; justify-content: center; height: 100%; min-width: 72px;">
+                <div id="qrcode" style="margin-left: 14px; display: flex; align-items: center; border: 2px solid #fff; border-radius: 8px; background: #222; padding: 6px;"></div>
+            </div>
         </div>
     </div>
     `;
@@ -115,21 +123,19 @@ function validarIngresso(codigoIngresso) {
 
         if (ingresso.usado) {
             resultadoValidacao.innerHTML = `<p style="color:red;"><strong>Ingresso já utilizado!</strong></p>`;
-            audioErro.play();
+            audioErro.play(); // Toca áudio negativo
         } else {
             // Marca como usado e salva novamente
             ingresso.usado = true;
             localStorage.setItem(codigoIngresso, JSON.stringify(ingresso));
-            // Cria uma cópia sem o campo 'usado'
-            const { usado, codigo, ...ingressoSemUsadoECodigo } = ingresso;
             resultadoValidacao.innerHTML = `
                 <p style="color:green;"><strong>Ingresso Válido!</strong></p>
             `;
-            audioSucesso.play();
+            audioSucesso.play(); // Toca áudio positivo
         }
     } else {
         resultadoValidacao.innerHTML = `<p style="color:red;"><strong>Ingresso Inválido!</strong></p>`;
-        audioErro.play();
+        audioErro.play(); // Toca áudio negativo
     }
 }
 
@@ -178,22 +184,22 @@ function apagarTodosIngressos() {
 function abrirLeitorQrCode() {
     const leitorDiv = document.getElementById('leitor-qrcode');
     leitorDiv.innerHTML = ""; // Limpa leitor anterior
+    leitorDiv.style.width = "100%";
+    leitorDiv.style.maxWidth = "350px";
+    leitorDiv.style.margin = "0 auto";
 
     const html5QrCode = new Html5Qrcode("leitor-qrcode");
     html5QrCode.start(
-        { facingMode: "environment" }, // Usa a câmera traseira
+        { facingMode: "environment" },
         {
             fps: 10,
-            qrbox: 250
+            qrbox: { width: 220, height: 220 }
         },
         (decodedText, decodedResult) => {
-            // Quando ler o QR Code, valida o ingresso
             html5QrCode.stop();
             validarIngresso(decodedText);
         },
-        (errorMessage) => {
-            // Erros de leitura podem ser ignorados ou exibidos
-        }
+        (errorMessage) => {}
     ).catch((err) => {
         leitorDiv.innerHTML = "<p style='color:red;'>Erro ao acessar a câmera.</p>";
     });
