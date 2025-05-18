@@ -50,7 +50,7 @@ function gerarIngresso(nome, evento, fundo) {
     const qrcodeDiv = document.getElementById('qrcode');
     qrcodeDiv.innerHTML = ""; // Limpa QR anterior
     new QRCode(qrcodeDiv, {
-        text: JSON.stringify(ingresso),
+        text: codigoIngresso, // ou JSON.stringify(ingresso)
         width: 72,
         height: 72
     });
@@ -181,30 +181,21 @@ function abrirLeitorQrCode() {
 
     const html5QrCode = new Html5Qrcode("leitor-qrcode");
     html5QrCode.start(
-        { facingMode: "environment" }, // Usa a câmera traseira se disponível
+        { facingMode: "environment" }, // Usa a câmera traseira
         {
             fps: 10,
             qrbox: 250
         },
         (decodedText, decodedResult) => {
-            // decodedText deve ser o JSON do ingresso
-            try {
-                const ingresso = JSON.parse(decodedText);
-                if (ingresso.codigo) {
-                    document.getElementById('codigo').value = ingresso.codigo;
-                    validarIngresso(ingresso.codigo);
-                    html5QrCode.stop();
-                    leitorDiv.innerHTML = ""; // Limpa o leitor após leitura
-                }
-            } catch (e) {
-                alert("QR Code inválido!");
-            }
+            // Quando ler o QR Code, valida o ingresso
+            html5QrCode.stop();
+            validarIngresso(decodedText);
         },
         (errorMessage) => {
-            // Ignora erros de leitura
+            // Erros de leitura podem ser ignorados ou exibidos
         }
     ).catch((err) => {
-        leitorDiv.innerHTML = `<p>Erro ao acessar a câmera: ${err}</p>`;
+        leitorDiv.innerHTML = "<p style='color:red;'>Erro ao acessar a câmera.</p>";
     });
 }
 
