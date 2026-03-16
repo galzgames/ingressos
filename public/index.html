@@ -565,6 +565,37 @@ body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;mi
       <button class="btn-admin" onclick="salvarConfig()">SALVAR</button>
     </div>
 
+    <div class="admin-card section-full">
+      <h3>💰 Valores dos Ingressos</h3>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+        <div class="event-field">
+          <label>🎟 Normal — Nome</label>
+          <input type="text" id="adm-normal-nome" value="Normal" />
+          <label>Valor (R$)</label>
+          <input type="number" id="adm-normal-valor" value="60" min="0" step="0.50" />
+          <label>Disponíveis</label>
+          <input type="number" id="adm-normal-qtd" value="200" min="0" />
+        </div>
+        <div class="event-field">
+          <label>⭐ VIP — Nome</label>
+          <input type="text" id="adm-vip-nome" value="VIP" />
+          <label>Valor (R$)</label>
+          <input type="number" id="adm-vip-valor" value="150" min="0" step="0.50" />
+          <label>Disponíveis</label>
+          <input type="number" id="adm-vip-qtd" value="60" min="0" />
+        </div>
+        <div class="event-field">
+          <label>🎓 Meia — Nome</label>
+          <input type="text" id="adm-meia-nome" value="Meia-Entrada" />
+          <label>Valor (R$)</label>
+          <input type="number" id="adm-meia-valor" value="30" min="0" step="0.50" />
+          <label>Disponíveis</label>
+          <input type="number" id="adm-meia-qtd" value="100" min="0" />
+        </div>
+      </div>
+      <button class="btn-admin" style="margin-top:16px" onclick="salvarPrecos()">SALVAR VALORES</button>
+    </div>
+
     <div class="admin-card">
       <h3>🎟 Ingressos Emitidos</h3>
       <div class="ticket-list-scroll" id="ticket-list">
@@ -601,6 +632,8 @@ async function loadConfig() {
   }
 }
 
+function fmtPreco(v) { return 'R$ ' + parseFloat(v).toFixed(2).replace('.',','); }
+
 function applyConfig() {
   document.getElementById('disp-name').textContent = config.eventName || '';
   document.getElementById('disp-date').textContent = config.eventDate || '';
@@ -614,6 +647,52 @@ function applyConfig() {
   document.getElementById('adm-local').value = config.eventLocal || '';
   document.getElementById('tk-ev-name').textContent = config.eventName || '';
   document.getElementById('tk-ev-date').textContent = config.eventDate || '';
+
+  // Aplica preços
+  const p = config.precos || {};
+  const normal = p.normal || { nome:'Normal', valor:60, qtd:200 };
+  const vip    = p.vip    || { nome:'VIP', valor:150, qtd:60 };
+  const meia   = p.meia   || { nome:'Meia-Entrada', valor:30, qtd:100 };
+
+  function updateCard(id, key, info) {
+    const el = document.getElementById('to-'+id);
+    if(!el) return;
+    el.querySelector('.opt-name').textContent = info.nome;
+    el.querySelector('.opt-price').textContent = fmtPreco(info.valor);
+    el.querySelector('.opt-avail').textContent = info.qtd + ' disponíveis';
+    el.onclick = () => selectType(key, info.nome, fmtPreco(info.valor));
+  }
+  updateCard('normal','normal',normal);
+  updateCard('vip','vip',vip);
+  updateCard('meia','meia',meia);
+
+  // Campos admin de preço
+  ['normal','vip','meia'].forEach(k => {
+    const data = k==='normal'?normal:k==='vip'?vip:meia;
+    const n = document.getElementById('adm-'+k+'-nome');
+    const v = document.getElementById('adm-'+k+'-valor');
+    const q = document.getElementById('adm-'+k+'-qtd');
+    if(n) { n.value=data.nome; v.value=data.valor; q.value=data.qtd; }
+  });
+
+  selPrice = fmtPreco(normal.valor);
+  selTypeName = normal.nome;
+}
+
+async function salvarPrecos() {
+  const body = {
+    precos: {
+      normal: { nome: document.getElementById('adm-normal-nome').value, valor: parseFloat(document.getElementById('adm-normal-valor').value)||0, qtd: parseInt(document.getElementById('adm-normal-qtd').value)||0 },
+      vip:    { nome: document.getElementById('adm-vip-nome').value,    valor: parseFloat(document.getElementById('adm-vip-valor').value)||0,    qtd: parseInt(document.getElementById('adm-vip-qtd').value)||0    },
+      meia:   { nome: document.getElementById('adm-meia-nome').value,   valor: parseFloat(document.getElementById('adm-meia-valor').value)||0,   qtd: parseInt(document.getElementById('adm-meia-qtd').value)||0   }
+    }
+  };
+  try {
+    await fetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    config = { ...config, ...body };
+    applyConfig();
+    showToast('Valores atualizados!');
+  } catch { showToast('Erro ao salvar. Servidor offline?'); }
 }
 
 async function loadTickets() {
