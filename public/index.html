@@ -397,6 +397,39 @@ body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;mi
 .pix-chave-cfg label:first-child{margin-top:0}
 .pix-chave-cfg input{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;color:#f0f4ff;font-family:'Share Tech Mono',monospace;font-size:13px;width:100%;outline:none;transition:border 0.2s}
 .pix-chave-cfg input:focus{border-color:#00c896}
+
+/* ===== ADMIN LOGIN & RESET ===== */
+#admin-login-bg{position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px}
+.admin-login-box{background:#0d1f3c;border:1px solid rgba(255,215,0,0.3);border-radius:20px;width:100%;max-width:380px;overflow:hidden;box-shadow:0 0 60px rgba(255,215,0,0.1)}
+.admin-login-header{background:linear-gradient(135deg,#1a1a2e,#0d1f3c);padding:28px;text-align:center;border-bottom:1px solid rgba(255,215,0,0.15)}
+.admin-login-logo{width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid var(--accent);margin-bottom:14px}
+.admin-login-title{font-family:'Orbitron',monospace;font-size:16px;font-weight:700;color:var(--accent);margin-bottom:4px}
+.admin-login-sub{font-size:13px;color:var(--muted)}
+.admin-login-body{padding:28px}
+.admin-login-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block}
+.admin-login-input{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:13px 16px;color:var(--text);font-size:16px;outline:none;transition:border 0.2s;letter-spacing:2px;font-family:'Share Tech Mono',monospace}
+.admin-login-input:focus{border-color:var(--accent)}
+.admin-login-btn{width:100%;margin-top:16px;background:linear-gradient(135deg,var(--accent),#ffb300);color:#000;border:none;border-radius:10px;padding:14px;font-family:'Orbitron',monospace;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all 0.2s}
+.admin-login-btn:hover{opacity:0.9;transform:translateY(-1px)}
+.admin-login-err{color:#e94560;font-size:13px;text-align:center;margin-top:10px;display:none}
+.admin-login-shake{animation:shake 0.4s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+
+#reset-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px;display:none}
+.reset-box{background:#0d1f3c;border:1px solid rgba(233,69,96,0.4);border-radius:20px;width:100%;max-width:400px;overflow:hidden;box-shadow:0 0 60px rgba(233,69,96,0.15)}
+.reset-header{background:linear-gradient(135deg,#e94560,#c0392b);padding:20px 24px;display:flex;align-items:center;gap:12px}
+.reset-header-icon{font-size:28px}
+.reset-header h2{font-family:'Orbitron',monospace;font-size:15px;color:#fff;margin:0 0 2px}
+.reset-header p{font-size:12px;color:rgba(255,255,255,0.8);margin:0}
+.reset-body{padding:24px}
+.reset-warn{background:rgba(233,69,96,0.1);border:1px solid rgba(233,69,96,0.3);border-radius:10px;padding:14px;margin-bottom:20px;font-size:13px;color:rgba(240,244,255,0.9);line-height:1.6}
+.reset-warn strong{color:#e94560}
+.reset-confirm-btn{width:100%;background:linear-gradient(135deg,#e94560,#c0392b);color:#fff;border:none;border-radius:10px;padding:14px;font-family:'Orbitron',monospace;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all 0.2s;margin-bottom:8px}
+.reset-confirm-btn:hover{opacity:0.9}
+.reset-cancel-btn{width:100%;background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s}
+.reset-cancel-btn:hover{border-color:var(--muted)}
+.btn-reset{background:linear-gradient(135deg,#e94560,#c0392b);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all 0.2s;box-shadow:0 4px 15px rgba(233,69,96,0.3)}
+.btn-reset:hover{opacity:0.9;transform:translateY(-1px)}
 </style>
 </head>
 <body>
@@ -599,6 +632,9 @@ body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;mi
       <div class="stat-row"><span class="stat-label">Normal</span><span class="stat-val" id="st-normal">0</span></div>
       <div class="stat-row"><span class="stat-label">VIP</span><span class="stat-val" id="st-vip">0</span></div>
       <div class="stat-row"><span class="stat-label">Meia-Entrada</span><span class="stat-val" id="st-meia">0</span></div>
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(233,69,96,0.2)">
+        <button class="btn-reset" onclick="abrirReset()">🗑 RESETAR TODOS OS INGRESSOS</button>
+      </div>
     </div>
 
     <div class="admin-card">
@@ -794,13 +830,76 @@ async function loadTickets() {
 }
 
 // ===== NAVIGATION =====
+let adminLogado = false;
+const ADMIN_SENHA = 'Suenia81@';
+
 function showPage(id) {
+  if (id === 'admin' && !adminLogado) {
+    document.getElementById('admin-senha-input').value = '';
+    document.getElementById('admin-login-err').style.display = 'none';
+    document.getElementById('admin-login-bg').style.display = 'flex';
+    return;
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('page-' + id).classList.add('active');
   const labels = { home:'Ingressos', 'meu-ingresso':'Meu Ingresso', validar:'Validar', admin:'Admin' };
   document.querySelectorAll('.tab').forEach(t => { if (t.textContent.trim() === labels[id]) t.classList.add('active'); });
-  if (id === 'admin') { loadTickets(); }
+  if (id === 'admin') { loadTickets(); applyPagamento(); }
+}
+
+function tentarLoginAdmin() {
+  const senha = document.getElementById('admin-senha-input').value;
+  const box = document.getElementById('admin-login-box') || document.querySelector('.admin-login-box');
+  if (senha === ADMIN_SENHA) {
+    adminLogado = true;
+    document.getElementById('admin-login-bg').style.display = 'none';
+    showPage('admin');
+  } else {
+    const err = document.getElementById('admin-login-err');
+    err.style.display = 'block';
+    if(box) { box.classList.remove('admin-login-shake'); void box.offsetWidth; box.classList.add('admin-login-shake'); }
+    document.getElementById('admin-senha-input').value = '';
+    document.getElementById('admin-senha-input').focus();
+  }
+}
+
+function abrirReset() {
+  document.getElementById('reset-senha-input').value = '';
+  document.getElementById('reset-err').style.display = 'none';
+  document.getElementById('reset-modal-bg').style.display = 'flex';
+}
+
+function fecharReset() {
+  document.getElementById('reset-modal-bg').style.display = 'none';
+}
+
+async function confirmarReset() {
+  const senha = document.getElementById('reset-senha-input').value;
+  if (senha !== ADMIN_SENHA) {
+    document.getElementById('reset-err').style.display = 'block';
+    document.getElementById('reset-senha-input').value = '';
+    document.getElementById('reset-senha-input').focus();
+    return;
+  }
+  try {
+    const r = await fetch('/api/reset', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ senha }) });
+    const d = await r.json();
+    if (d.ok) {
+      allTickets = [];
+      currentTicket = null;
+      fecharReset();
+      updateAdminStats();
+      document.getElementById('no-ticket').style.display = 'block';
+      document.getElementById('ticket-display').style.display = 'none';
+      showToast('Todos os ingressos foram apagados!');
+    } else {
+      document.getElementById('reset-err').textContent = '❌ ' + (d.error || 'Erro no servidor.');
+      document.getElementById('reset-err').style.display = 'block';
+    }
+  } catch {
+    showToast('Erro de conexão com o servidor.');
+  }
 }
 
 // ===== TICKET SELECTION =====
@@ -1188,5 +1287,43 @@ init();
     </div>
   </div>
 </div>
+
+<!-- ADMIN LOGIN MODAL -->
+<div id="admin-login-bg" style="display:none">
+  <div class="admin-login-box">
+    <div class="admin-login-header">
+      <img src="/images/logo.png" class="admin-login-logo" alt="logo" />
+      <div class="admin-login-title">Área Restrita</div>
+      <div class="admin-login-sub">Digite a senha de administrador</div>
+    </div>
+    <div class="admin-login-body">
+      <label class="admin-login-label">Senha Admin</label>
+      <input class="admin-login-input" type="password" id="admin-senha-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')tentarLoginAdmin()" />
+      <div class="admin-login-err" id="admin-login-err">❌ Senha incorreta. Tente novamente.</div>
+      <button class="admin-login-btn" onclick="tentarLoginAdmin()">🔓 ENTRAR</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESET MODAL -->
+<div id="reset-modal-bg">
+  <div class="reset-box">
+    <div class="reset-header">
+      <div class="reset-header-icon">⚠️</div>
+      <div><h2>Resetar Ingressos</h2><p>Esta ação não pode ser desfeita</p></div>
+    </div>
+    <div class="reset-body">
+      <div class="reset-warn">
+        <strong>Atenção!</strong> Todos os ingressos emitidos serão <strong>permanentemente apagados</strong>. O contador voltará ao início. Essa ação é irreversível.
+      </div>
+      <label class="admin-login-label" style="margin-bottom:8px;display:block">Confirme digitando sua senha:</label>
+      <input class="admin-login-input" type="password" id="reset-senha-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')confirmarReset()" />
+      <div class="admin-login-err" id="reset-err" style="margin-bottom:8px">❌ Senha incorreta.</div>
+      <button class="reset-confirm-btn" style="margin-top:16px" onclick="confirmarReset()">🗑 SIM, APAGAR TUDO</button>
+      <button class="reset-cancel-btn" onclick="fecharReset()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
