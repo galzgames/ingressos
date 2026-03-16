@@ -1,4 +1,4 @@
-// GalzGames Ingressos - Backend Node.js (sem dependências externas)
+// GalzGames Ingressos - Backend com MongoDB Atlas
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -6,34 +6,42 @@ const crypto = require('crypto');
 const url = require('url');
 
 const PORT = process.env.PORT || 3000;
-const DATA_FILE = path.join(__dirname, 'data', 'tickets.json');
-const CONFIG_FILE = path.join(__dirname, 'data', 'config.json');
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://galzgames:Suenia81%40@cluster0.dygaehl.mongodb.net/galzgames?appName=Cluster0';
 const UPLOADS_DIR = path.join(__dirname, 'public', 'images', 'uploads');
+const ADMIN_SENHA = process.env.ADMIN_SENHA || 'Suenia81@';
 
-// Garante que os diretórios existam
-[path.join(__dirname, 'data'), UPLOADS_DIR].forEach(dir => {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-});
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
-// Inicializa arquivos de dados
-if (!fs.existsSync(DATA_FILE)) fs.writeFileSync(DATA_FILE, JSON.stringify([]));
-if (!fs.existsSync(CONFIG_FILE)) fs.writeFileSync(CONFIG_FILE, JSON.stringify({
-  eventName: 'Retro Gamer Day',
-  eventDate: 'Sábado, 10 Mai 2025 • 18h',
-  eventLocal: 'Arena GalzGames, São Paulo - SP',
-  bgImage: '/images/banner.jpeg'
-}));
+let db = null;
 
-function readJSON(file) {
-  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return null; }
+async function connectMongo() {
+  const { MongoClient } = require('mongodb');
+  const client = new MongoClient(MONGO_URI);
+  await client.connect();
+  db = client.db('galzgames');
+  console.log('MongoDB conectado!');
+  const config = await db.collection('config').findOne({ _id: 'main' });
+  if (!config) {
+    await db.collection('config').insertOne({
+      _id: 'main',
+      eventName: 'Retro Gamer Day',
+      eventDate: 'Sabado, 10 Mai 2025 - 18h',
+      eventLocal: 'Arena GalzGames, Sao Paulo - SP',
+      bgImage: '/images/banner.jpeg',
+      precos: {
+        normal: { nome: 'Normal', valor: 60, qtd: 200 },
+        vip:    { nome: 'VIP', valor: 150, qtd: 60 },
+        meia:   { nome: 'Meia-Entrada', valor: 30, qtd: 100 }
+      },
+      pagamento: { pixChave: 'galzgames@gmail.com', pixTipo: 'E-mail', pixNome: 'GalzGames', outros: [] }
+    });
+  }
 }
-function writeJSON(file, data) {
-  fs.writeFileSync(file, JSON.stringify(data, null, 2));
-}
 
-function generateTicketNumber() {
-  const tickets = readJSON(DATA_FILE) || [];
-  return String(100001 + tickets.length);
+function getNextNumber(tickets) {
+  if (!tickets || tickets.length === 0) return '100001';
+  const nums = tickets.map(t => parseInt(t.number) || 100000);
+  return String(Math.max(...nums) + 1);
 }
 
 const MIME = {
@@ -48,150 +56,133 @@ function serveStatic(res, filePath) {
   if (fs.existsSync(filePath)) {
     res.writeHead(200, { 'Content-Type': mime });
     fs.createReadStream(filePath).pipe(res);
-  } else {
-    res.writeHead(404); res.end('Not found');
-  }
+  } else { res.writeHead(404); res.end('Not found'); }
 }
 
-function jsonResponse(res, status, data) {
+function jsonRes(res, status, data) {
   res.writeHead(status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
   res.end(JSON.stringify(data));
 }
 
 function parseBody(req, cb) {
   let body = '';
-  req.on('data', chunk => body += chunk);
-  req.on('end', () => {
-    try { cb(JSON.parse(body)); } catch { cb({}); }
-  });
+  req.on('data', c => body += c);
+  req.on('end', () => { try { cb(JSON.parse(body)); } catch { cb({}); } });
 }
 
 function parseMultipart(req, cb) {
   let chunks = [];
-  req.on('data', chunk => chunks.push(chunk));
+  req.on('data', c => chunks.push(c));
   req.on('end', () => {
     const buffer = Buffer.concat(chunks);
     const boundary = req.headers['content-type'].split('boundary=')[1];
     if (!boundary) return cb(null, null);
     const bBuf = Buffer.from('--' + boundary);
-    let parts = [];
-    let start = buffer.indexOf(bBuf) + bBuf.length + 2;
+    let parts = [], start = buffer.indexOf(bBuf) + bBuf.length + 2;
     while (start < buffer.length) {
       let end = buffer.indexOf(bBuf, start);
       if (end === -1) break;
       const part = buffer.slice(start, end - 2);
-      const headerEnd = part.indexOf('\r\n\r\n');
-      const headers = part.slice(0, headerEnd).toString();
-      const data = part.slice(headerEnd + 4);
-      const nameMatch = headers.match(/name="([^"]+)"/);
-      const filenameMatch = headers.match(/filename="([^"]+)"/);
-      if (nameMatch) parts.push({ name: nameMatch[1], filename: filenameMatch?.[1], data });
+      const hEnd = part.indexOf('\r\n\r\n');
+      const headers = part.slice(0, hEnd).toString();
+      const data = part.slice(hEnd + 4);
+      const nm = headers.match(/name="([^"]+)"/);
+      const fn = headers.match(/filename="([^"]+)"/);
+      if (nm) parts.push({ name: nm[1], filename: fn?.[1], data });
       start = end + bBuf.length + 2;
     }
-    const filePart = parts.find(p => p.filename);
-    const fields = {};
-    parts.filter(p => !p.filename).forEach(p => fields[p.name] = p.data.toString().trim());
-    cb(fields, filePart);
+    cb({}, parts.find(p => p.filename));
   });
 }
 
-const server = http.createServer((req, res) => {
-  const parsed = url.parse(req.url, true);
-  const pathname = parsed.pathname;
-
+const server = http.createServer(async (req, res) => {
+  const { pathname } = url.parse(req.url, true);
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+  if (!db) return jsonRes(res, 503, { error: 'Conectando ao banco... tente em instantes.' });
 
-  // API ROUTES
-  if (pathname === '/api/config' && req.method === 'GET') {
-    return jsonResponse(res, 200, readJSON(CONFIG_FILE));
+  try {
+    // GET config
+    if (pathname === '/api/config' && req.method === 'GET') {
+      const c = await db.collection('config').findOne({ _id: 'main' });
+      const { _id, ...rest } = c || {};
+      return jsonRes(res, 200, rest);
+    }
+    // POST config
+    if (pathname === '/api/config' && req.method === 'POST') {
+      return parseBody(req, async body => {
+        const { _id, ...upd } = body;
+        await db.collection('config').updateOne({ _id: 'main' }, { $set: upd }, { upsert: true });
+        jsonRes(res, 200, { ok: true });
+      });
+    }
+    // GET tickets
+    if (pathname === '/api/tickets' && req.method === 'GET') {
+      const tickets = await db.collection('tickets').find({}).sort({ createdAt: 1 }).toArray();
+      return jsonRes(res, 200, tickets.map(({ _id, ...t }) => t));
+    }
+    // POST ticket
+    if (pathname === '/api/tickets' && req.method === 'POST') {
+      return parseBody(req, async body => {
+        const all = await db.collection('tickets').find({}, { projection: { number: 1 } }).toArray();
+        const ticket = {
+          id: crypto.randomUUID(),
+          number: getNextNumber(all),
+          name: body.name, email: body.email, cpf: body.cpf,
+          type: body.type, typeKey: body.typeKey, price: body.price,
+          qty: body.qty || 1, pagamento: body.pagamento || 'pix',
+          used: false, createdAt: new Date().toISOString()
+        };
+        await db.collection('tickets').insertOne(ticket);
+        const { _id, ...clean } = ticket;
+        jsonRes(res, 201, clean);
+      });
+    }
+    // POST validate
+    if (pathname.startsWith('/api/validate/') && req.method === 'POST') {
+      const number = pathname.split('/')[3];
+      const ticket = await db.collection('tickets').findOne({ number });
+      if (!ticket) return jsonRes(res, 404, { valid: false, message: 'Ingresso nao encontrado.' });
+      if (ticket.used) return jsonRes(res, 200, { valid: false, used: true, message: 'Ingresso ja utilizado.', ticket });
+      await db.collection('tickets').updateOne({ number }, { $set: { used: true, usedAt: new Date().toISOString() } });
+      return jsonRes(res, 200, { valid: true, message: 'Ingresso valido! Entrada liberada.', ticket: { ...ticket, used: true } });
+    }
+    // POST reset
+    if (pathname === '/api/reset' && req.method === 'POST') {
+      return parseBody(req, async body => {
+        if (body.senha !== ADMIN_SENHA) return jsonRes(res, 401, { ok: false, error: 'Senha incorreta.' });
+        await db.collection('tickets').deleteMany({});
+        jsonRes(res, 200, { ok: true });
+      });
+    }
+    // POST upload-bg
+    if (pathname === '/api/upload-bg' && req.method === 'POST') {
+      return parseMultipart(req, async (fields, file) => {
+        if (!file) return jsonRes(res, 400, { error: 'Nenhum arquivo.' });
+        const ext = path.extname(file.filename) || '.jpg';
+        const filename = 'bg_' + Date.now() + ext;
+        fs.writeFileSync(path.join(UPLOADS_DIR, filename), file.data);
+        const bgPath = '/images/uploads/' + filename;
+        await db.collection('config').updateOne({ _id: 'main' }, { $set: { bgImage: bgPath } }, { upsert: true });
+        jsonRes(res, 200, { ok: true, path: bgPath });
+      });
+    }
+    // Static files
+    if (pathname === '/') return serveStatic(res, path.join(__dirname, 'public', 'index.html'));
+    if (pathname.startsWith('/images/uploads/')) return serveStatic(res, path.join(UPLOADS_DIR, path.basename(pathname)));
+    if (pathname.startsWith('/images/')) return serveStatic(res, path.join(__dirname, 'public', 'images', path.basename(pathname)));
+    serveStatic(res, path.join(__dirname, 'public', pathname.slice(1)));
+  } catch (err) {
+    console.error('Erro:', err.message);
+    jsonRes(res, 500, { error: 'Erro interno: ' + err.message });
   }
-
-  if (pathname === '/api/config' && req.method === 'POST') {
-    return parseBody(req, body => {
-      const config = readJSON(CONFIG_FILE);
-      writeJSON(CONFIG_FILE, { ...config, ...body });
-      jsonResponse(res, 200, { ok: true });
-    });
-  }
-
-  if (pathname === '/api/tickets' && req.method === 'GET') {
-    return jsonResponse(res, 200, readJSON(DATA_FILE) || []);
-  }
-
-  if (pathname === '/api/tickets' && req.method === 'POST') {
-    return parseBody(req, body => {
-      const tickets = readJSON(DATA_FILE) || [];
-      const ticket = {
-        id: crypto.randomUUID(),
-        number: generateTicketNumber(),
-        name: body.name,
-        email: body.email,
-        cpf: body.cpf,
-        type: body.type,
-        typeKey: body.typeKey,
-        price: body.price,
-        qty: body.qty || 1,
-        used: false,
-        createdAt: new Date().toISOString()
-      };
-      tickets.push(ticket);
-      writeJSON(DATA_FILE, tickets);
-      jsonResponse(res, 201, ticket);
-    });
-  }
-
-  if (pathname.startsWith('/api/validate/') && req.method === 'POST') {
-    const number = pathname.split('/')[3];
-    const tickets = readJSON(DATA_FILE) || [];
-    const idx = tickets.findIndex(t => t.number === number);
-    if (idx === -1) return jsonResponse(res, 404, { valid: false, message: 'Ingresso não encontrado.' });
-    if (tickets[idx].used) return jsonResponse(res, 200, { valid: false, used: true, message: 'Ingresso já utilizado.', ticket: tickets[idx] });
-    tickets[idx].used = true;
-    tickets[idx].usedAt = new Date().toISOString();
-    writeJSON(DATA_FILE, tickets);
-    jsonResponse(res, 200, { valid: true, message: 'Ingresso válido! Entrada liberada.', ticket: tickets[idx] });
-    return;
-  }
-
-  if (pathname === '/api/reset' && req.method === 'POST') {
-    return parseBody(req, body => {
-      const ADMIN_SENHA = 'Suenia81@';
-      if (body.senha !== ADMIN_SENHA) {
-        return jsonResponse(res, 401, { ok: false, error: 'Senha incorreta.' });
-      }
-      writeJSON(DATA_FILE, []);
-      jsonResponse(res, 200, { ok: true });
-    });
-  }
-
-  if (pathname === '/api/upload-bg' && req.method === 'POST') {
-    return parseMultipart(req, (fields, file) => {
-      if (!file) return jsonResponse(res, 400, { error: 'Nenhum arquivo enviado.' });
-      const ext = path.extname(file.filename) || '.jpg';
-      const filename = 'bg_' + Date.now() + ext;
-      const filePath = path.join(UPLOADS_DIR, filename);
-      fs.writeFileSync(filePath, file.data);
-      const config = readJSON(CONFIG_FILE);
-      config.bgImage = '/images/uploads/' + filename;
-      writeJSON(CONFIG_FILE, config);
-      jsonResponse(res, 200, { ok: true, path: config.bgImage });
-    });
-  }
-
-  // Servir arquivos estáticos
-  if (pathname === '/') return serveStatic(res, path.join(__dirname, 'public', 'index.html'));
-  if (pathname.startsWith('/images/uploads/')) {
-    return serveStatic(res, path.join(UPLOADS_DIR, path.basename(pathname)));
-  }
-  if (pathname.startsWith('/images/')) {
-    return serveStatic(res, path.join(__dirname, 'public', 'images', path.basename(pathname)));
-  }
-  serveStatic(res, path.join(__dirname, 'public', pathname.slice(1)));
 });
 
-server.listen(PORT, () => {
-  console.log(`\n🎮 GalzGames Ingressos rodando em http://localhost:${PORT}\n`);
+connectMongo().then(() => {
+  server.listen(PORT, () => console.log(`\nGalzGames Ingressos rodando em http://localhost:${PORT}\n`));
+}).catch(err => {
+  console.error('Erro MongoDB:', err.message);
+  process.exit(1);
 });
