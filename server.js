@@ -156,6 +156,17 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (pathname === '/api/reset' && req.method === 'POST') {
+    return parseBody(req, body => {
+      const ADMIN_SENHA = 'Suenia81@';
+      if (body.senha !== ADMIN_SENHA) {
+        return jsonResponse(res, 401, { ok: false, error: 'Senha incorreta.' });
+      }
+      writeJSON(DATA_FILE, []);
+      jsonResponse(res, 200, { ok: true });
+    });
+  }
+
   if (pathname === '/api/upload-bg' && req.method === 'POST') {
     return parseMultipart(req, (fields, file) => {
       if (!file) return jsonResponse(res, 400, { error: 'Nenhum arquivo enviado.' });
