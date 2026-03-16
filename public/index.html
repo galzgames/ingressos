@@ -442,8 +442,8 @@ body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;mi
         </div>
       </div>
     </div>
-    <button class="btn-generate" id="btn-gen" onclick="comprarIngresso()">
-      🎟 GERAR MEU INGRESSO
+    <button class="btn-generate" id="btn-gen" onclick="abrirPagamento()">
+      💚 PAGAR E GERAR INGRESSO
     </button>
   </div>
 </div>
@@ -596,6 +596,46 @@ body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;mi
       <button class="btn-admin" style="margin-top:16px" onclick="salvarPrecos()">SALVAR VALORES</button>
     </div>
 
+    <div class="admin-card section-full">
+      <h3>💳 Configurações de Pagamento</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div>
+          <div style="font-size:12px;color:var(--success);font-weight:700;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px">✅ PIX — Sempre ativo</div>
+          <div class="pix-chave-config">
+            <label>Tipo da Chave PIX</label>
+            <input type="text" id="adm-pix-tipo" placeholder="Ex: E-mail, CPF, Telefone, Aleatória" />
+            <label>Chave PIX</label>
+            <input type="text" id="adm-pix-chave" placeholder="Ex: galzgames@gmail.com" />
+            <label>Nome do Recebedor</label>
+            <input type="text" id="adm-pix-nome" placeholder="Ex: GalzGames" />
+          </div>
+          <button class="btn-admin" style="margin-top:12px" onclick="salvarPagamento()">SALVAR PIX</button>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px">🔒 Outros Métodos (admin libera)</div>
+          <div id="adm-outros-lista">
+            <div class="adm-pgto-toggle">
+              <div><div class="adm-pgto-label">💳 Cartão de Crédito</div><div class="adm-pgto-sub">Via maquininha no local</div></div>
+              <label class="toggle-switch"><input type="checkbox" id="tog-credito" /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="adm-pgto-toggle">
+              <div><div class="adm-pgto-label">💳 Cartão de Débito</div><div class="adm-pgto-sub">Via maquininha no local</div></div>
+              <label class="toggle-switch"><input type="checkbox" id="tog-debito" /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="adm-pgto-toggle">
+              <div><div class="adm-pgto-label">💵 Dinheiro</div><div class="adm-pgto-sub">Pagamento presencial</div></div>
+              <label class="toggle-switch"><input type="checkbox" id="tog-dinheiro" /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="adm-pgto-toggle">
+              <div><div class="adm-pgto-label">🔄 Transferência</div><div class="adm-pgto-sub">TED/DOC bancário</div></div>
+              <label class="toggle-switch"><input type="checkbox" id="tog-transferencia" /><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+          <button class="btn-admin" style="margin-top:12px" onclick="salvarMetodos()">SALVAR MÉTODOS</button>
+        </div>
+      </div>
+    </div>
+
     <div class="admin-card">
       <h3>🎟 Ingressos Emitidos</h3>
       <div class="ticket-list-scroll" id="ticket-list">
@@ -677,6 +717,7 @@ function applyConfig() {
 
   selPrice = fmtPreco(normal.valor);
   selTypeName = normal.nome;
+  applyPagamento();
 }
 
 async function salvarPrecos() {
@@ -733,33 +774,123 @@ document.getElementById('f-cpf').addEventListener('input', function() {
 });
 
 // ===== GERAR INGRESSO =====
-async function comprarIngresso() {
+// ===== PAGAMENTO =====
+function abrirPagamento() {
   const name = document.getElementById('f-name').value.trim();
   const email = document.getElementById('f-email').value.trim();
   const cpf = document.getElementById('f-cpf').value.trim();
   if (!name || !email || !cpf) { showToast('Preencha todos os campos!'); return; }
   if (!email.includes('@')) { showToast('E-mail inválido!'); return; }
 
+  const pgto = config.pagamento || {};
+  const chave = pgto.pixChave || 'galzgames@gmail.com';
+  const tipoChave = pgto.pixTipo || 'E-mail';
+  const nomeRec = pgto.pixNome || 'GalzGames';
+
+  // Calcular total
+  const valorUnit = parseFloat((selPrice || 'R$ 60,00').replace('R$','').replace(',','.').trim()) || 0;
+  const total = valorUnit * qty;
+  const totalFmt = 'R$ ' + total.toFixed(2).replace('.',',');
+
+  document.getElementById('pix-modal-sub').textContent = selTypeName + ' • ' + qty + 'x ' + selPrice;
+  document.getElementById('pix-total').textContent = totalFmt;
+  document.getElementById('pix-copiaecola').textContent = chave;
+  document.getElementById('pix-chave-disp').textContent = chave;
+  document.getElementById('pix-tipo-chave').textContent = tipoChave;
+  document.getElementById('pix-nome-disp').textContent = nomeRec;
+
+  // Mostrar/ocultar aba Outros
+  const outros = pgto.outros || [];
+  const tabOutros = document.getElementById('tab-outros');
+  tabOutros.style.display = outros.length > 0 ? 'flex' : 'none';
+  const lista = document.getElementById('pix-metodos-lista');
+  lista.innerHTML = outros.map(m => 
+    `<div class="pix-metodo-btn"><div class="pix-metodo-icon">${m.icon}</div><div><div>${m.nome}</div><div class="pix-metodo-desc">${m.desc||''}</div></div></div>`
+  ).join('');
+
+  // Gerar QR Code PIX
+  drawQRPix(chave + '|' + totalFmt, 'pix-qr-canvas');
+  pixTab('qr');
+  document.getElementById('pix-modal-bg').style.display = 'flex';
+}
+
+function pixTab(t) {
+  ['qr','chave','outros'].forEach(k => {
+    const el = document.getElementById('pix-tab-'+k);
+    if(el) el.style.display = k===t ? 'block' : 'none';
+    const btn = document.querySelector(`.pix-tab[onclick="pixTab('${k}')"]`);
+    if(btn) btn.classList.toggle('active', k===t);
+  });
+}
+
+function fecharPix() {
+  document.getElementById('pix-modal-bg').style.display = 'none';
+}
+
+function copiarPix() {
+  const val = document.getElementById('pix-copiaecola').textContent;
+  navigator.clipboard.writeText(val).then(() => showToast('Código PIX copiado!'));
+}
+
+function copiarChave() {
+  const val = document.getElementById('pix-chave-disp').textContent;
+  navigator.clipboard.writeText(val).then(() => showToast('Chave PIX copiada!'));
+}
+
+function drawQRPix(text, canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const sz = 180, cells = 25, cell = Math.floor(sz / cells);
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, sz, sz);
+  ctx.fillStyle = '#00a07a';
+  const seed = text.split('').reduce((a,c,i) => a + c.charCodeAt(0)*(i+11),0);
+  function bit(r,c) { const v=(seed^(r*31337+c*7919))*2654435761; return (v>>>16)%3!==0; }
+  for(let r=0;r<cells;r++) for(let c=0;c<cells;c++) {
+    const inFP=(r<8&&c<8)||(r<8&&c>cells-9)||(r>cells-9&&c<8);
+    if(!inFP && bit(r,c)) ctx.fillRect(c*cell+1,r*cell+1,cell-1,cell-1);
+  }
+  ctx.fillStyle='#00a07a';
+  const fp=(ox,oy)=>{
+    ctx.fillRect(ox*cell,oy*cell,7*cell,7*cell);
+    ctx.fillStyle='#fff';ctx.fillRect((ox+1)*cell,(oy+1)*cell,5*cell,5*cell);
+    ctx.fillStyle='#00a07a';ctx.fillRect((ox+2)*cell,(oy+2)*cell,3*cell,3*cell);
+  };
+  fp(0,0);fp(cells-7,0);fp(0,cells-7);
+}
+
+async function confirmarPagamento(metodo) {
+  fecharPix();
   const btn = document.getElementById('btn-gen');
-  btn.disabled = true; btn.textContent = 'Gerando...';
+  btn.disabled = true; btn.textContent = 'Gerando ingresso...';
+
+  const name = document.getElementById('f-name').value.trim();
+  const email = document.getElementById('f-email').value.trim();
+  const cpf = document.getElementById('f-cpf').value.trim();
 
   try {
     const r = await fetch(API + '/api/tickets', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ name, email, cpf, type: selTypeName, typeKey: selType, price: selPrice, qty })
+      body: JSON.stringify({ name, email, cpf, type: selTypeName, typeKey: selType, price: selPrice, qty, pagamento: metodo })
     });
     const ticket = await r.json();
     currentTicket = ticket;
     renderTicket(ticket);
     await loadTickets();
-    showToast('Ingresso gerado com sucesso!');
+    if(metodo === 'outro') {
+      showToast('Solicitação enviada! Aguarde confirmação.');
+    } else {
+      showToast('Pagamento confirmado! Ingresso gerado!');
+    }
     showPage('meu-ingresso');
   } catch {
     showToast('Erro ao gerar ingresso. Verifique o servidor.');
   } finally {
-    btn.disabled = false; btn.textContent = '🎟 GERAR MEU INGRESSO';
+    btn.disabled = false; btn.textContent = '💚 PAGAR E GERAR INGRESSO';
   }
 }
+
+async function comprarIngresso() { abrirPagamento(); }
 
 function renderTicket(t) {
   document.getElementById('no-ticket').style.display = 'none';
@@ -897,6 +1028,51 @@ function copiarCodigo() {
   navigator.clipboard.writeText(currentTicket.number).then(() => showToast('Código copiado: ' + currentTicket.number));
 }
 
+// ===== ADMIN PAGAMENTO =====
+const metodosList = [
+  { id:'credito', icon:'💳', nome:'Cartão de Crédito', desc:'Via maquininha no local' },
+  { id:'debito',  icon:'💳', nome:'Cartão de Débito',  desc:'Via maquininha no local' },
+  { id:'dinheiro',icon:'💵', nome:'Dinheiro',           desc:'Pagamento presencial'    },
+  { id:'transferencia',icon:'🔄', nome:'Transferência', desc:'TED/DOC bancário'        }
+];
+
+function applyPagamento() {
+  const pgto = config.pagamento || {};
+  if(document.getElementById('adm-pix-chave')) {
+    document.getElementById('adm-pix-chave').value = pgto.pixChave || '';
+    document.getElementById('adm-pix-tipo').value  = pgto.pixTipo  || '';
+    document.getElementById('adm-pix-nome').value  = pgto.pixNome  || '';
+    const ativos = (pgto.outros||[]).map(o=>o.id);
+    metodosList.forEach(m => {
+      const el = document.getElementById('tog-'+m.id);
+      if(el) el.checked = ativos.includes(m.id);
+    });
+  }
+}
+
+async function salvarPagamento() {
+  const pgto = config.pagamento || {};
+  pgto.pixChave = document.getElementById('adm-pix-chave').value.trim();
+  pgto.pixTipo  = document.getElementById('adm-pix-tipo').value.trim();
+  pgto.pixNome  = document.getElementById('adm-pix-nome').value.trim();
+  try {
+    await fetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ pagamento: pgto }) });
+    config.pagamento = pgto;
+    showToast('Dados PIX salvos!');
+  } catch { showToast('Erro ao salvar.'); }
+}
+
+async function salvarMetodos() {
+  const pgto = config.pagamento || {};
+  pgto.outros = metodosList.filter(m => document.getElementById('tog-'+m.id)?.checked);
+  try {
+    await fetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ pagamento: pgto }) });
+    config.pagamento = pgto;
+    applyPagamento();
+    showToast('Métodos de pagamento salvos!');
+  } catch { showToast('Erro ao salvar.'); }
+}
+
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
@@ -905,5 +1081,63 @@ function showToast(msg) {
 
 init();
 </script>
+
+<!-- PIX PAYMENT MODAL -->
+<div id="pix-modal-bg" class="pix-modal-bg" style="display:none">
+  <div class="pix-modal">
+    <div class="pix-header">
+      <div class="pix-header-icon">💚</div>
+      <div><h2>Pagamento PIX</h2><p id="pix-modal-sub">Ingresso</p></div>
+    </div>
+    <div class="pix-body">
+      <div class="pix-valor">
+        <div class="pix-valor-label">Total a pagar</div>
+        <div class="pix-valor-num" id="pix-total">R$ 0,00</div>
+      </div>
+      <div class="pix-tabs">
+        <button class="pix-tab active" onclick="pixTab('qr')">QR Code</button>
+        <button class="pix-tab" onclick="pixTab('chave')">Chave PIX</button>
+        <button class="pix-tab" id="tab-outros" onclick="pixTab('outros')" style="display:none">Outros</button>
+      </div>
+      <div id="pix-tab-qr" style="display:block">
+        <div class="pix-qr-wrap">
+          <div class="pix-qr-box"><canvas id="pix-qr-canvas" width="180" height="180"></canvas></div>
+          <div style="font-size:12px;color:var(--muted)">Escaneie com o app do seu banco</div>
+        </div>
+        <div class="pix-key-box">
+          <div class="pix-key-label">Código PIX / Chave</div>
+          <div class="pix-key-row">
+            <div class="pix-key-val" id="pix-copiaecola">galzgames@gmail.com</div>
+            <button class="pix-copy-btn" onclick="copiarPix()">COPIAR</button>
+          </div>
+        </div>
+        <div class="pix-steps">
+          <div class="pix-step"><div class="pix-step-num">1</div><span>Abra o app do banco → PIX</span></div>
+          <div class="pix-step"><div class="pix-step-num">2</div><span>Escaneie o QR Code ou copie a chave</span></div>
+          <div class="pix-step"><div class="pix-step-num">3</div><span>Após pagar, clique em "Já Paguei"</span></div>
+        </div>
+        <button class="pix-confirm-btn" onclick="confirmarPagamento('pix')">✅ JÁ PAGUEI — GERAR INGRESSO</button>
+        <button class="pix-cancel-btn" onclick="fecharPix()">Cancelar</button>
+      </div>
+      <div id="pix-tab-chave" style="display:none">
+        <div class="pix-key-box"><div class="pix-key-label">Tipo de Chave</div><div class="pix-key-val" id="pix-tipo-chave" style="color:var(--accent)">E-mail</div></div>
+        <div class="pix-key-box">
+          <div class="pix-key-label">Chave PIX</div>
+          <div class="pix-key-row"><div class="pix-key-val" id="pix-chave-disp">galzgames@gmail.com</div><button class="pix-copy-btn" onclick="copiarChave()">COPIAR</button></div>
+        </div>
+        <div class="pix-key-box"><div class="pix-key-label">Recebedor</div><div class="pix-key-val" id="pix-nome-disp">GalzGames</div></div>
+        <div style="height:14px"></div>
+        <button class="pix-confirm-btn" onclick="confirmarPagamento('pix')">✅ JÁ PAGUEI — GERAR INGRESSO</button>
+        <button class="pix-cancel-btn" onclick="fecharPix()">Cancelar</button>
+      </div>
+      <div id="pix-tab-outros" style="display:none">
+        <div class="pix-outros-info"><strong>⚠️ Atenção:</strong> Outros métodos devem ser combinados com o organizador. O ingresso será gerado após confirmação manual.</div>
+        <div class="pix-metodos" id="pix-metodos-lista"></div>
+        <button class="pix-confirm-btn" style="background:linear-gradient(135deg,#e94560,#c0392b)" onclick="confirmarPagamento('outro')">📩 SOLICITAR INGRESSO</button>
+        <button class="pix-cancel-btn" onclick="fecharPix()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
