@@ -348,6 +348,55 @@ body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;mi
 
 /* LOADING */
 .loading{display:none;text-align:center;padding:40px;color:var(--muted);font-size:13px}
+
+/* ===== PIX MODAL ===== */
+#pix-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
+.pix-modal{background:#0d1f3c;border:1px solid rgba(0,200,150,0.3);border-radius:20px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:0 0 60px rgba(0,200,150,0.15)}
+.pix-header{background:linear-gradient(135deg,#00c896,#00a07a);padding:18px 22px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:1}
+.pix-header-icon{font-size:28px}
+.pix-header h2{font-family:'Orbitron',monospace;font-size:15px;font-weight:700;color:#fff;margin:0 0 2px}
+.pix-header p{font-size:12px;color:rgba(255,255,255,0.85);margin:0}
+.pix-body{padding:20px}
+.pix-valor{text-align:center;margin-bottom:18px;padding:14px;background:rgba(0,200,150,0.08);border-radius:12px;border:1px solid rgba(0,200,150,0.2)}
+.pix-valor-label{font-size:11px;color:rgba(0,200,150,0.8);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.pix-valor-num{font-family:'Orbitron',monospace;font-size:28px;font-weight:900;color:#00c896}
+.pix-tabs{display:flex;gap:6px;margin-bottom:16px}
+.pix-tab{flex:1;padding:8px 4px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:#6a7d99;font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;text-transform:uppercase;letter-spacing:0.5px}
+.pix-tab.active{background:rgba(0,200,150,0.15);border-color:#00c896;color:#00c896}
+.pix-qr-wrap{text-align:center;margin-bottom:14px}
+.pix-qr-box{display:inline-block;background:#fff;padding:12px;border-radius:12px;margin-bottom:8px}
+.pix-key-box{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;margin-bottom:12px}
+.pix-key-label{font-size:10px;color:#6a7d99;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.pix-key-row{display:flex;align-items:center;gap:8px}
+.pix-key-val{font-family:'Share Tech Mono',monospace;font-size:13px;color:#f0f4ff;word-break:break-all;flex:1}
+.pix-copy-btn{background:#00c896;color:#000;border:none;border-radius:6px;padding:6px 10px;font-family:'Orbitron',monospace;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all 0.2s}
+.pix-copy-btn:hover{background:#00a07a}
+.pix-steps{margin-bottom:14px}
+.pix-step{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:13px;color:rgba(240,244,255,0.8)}
+.pix-step-num{width:20px;height:20px;border-radius:50%;background:rgba(0,200,150,0.15);border:1px solid #00c896;color:#00c896;font-weight:700;font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.pix-confirm-btn{width:100%;background:linear-gradient(135deg,#00c896,#00a07a);color:#fff;border:none;border-radius:12px;padding:14px;font-family:'Orbitron',monospace;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all 0.2s;margin-bottom:8px}
+.pix-confirm-btn:hover{opacity:0.9;transform:translateY(-1px)}
+.pix-cancel-btn{width:100%;background:transparent;color:#6a7d99;border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s}
+.pix-cancel-btn:hover{border-color:#e94560;color:#e94560}
+.pix-outros-info{background:rgba(255,165,0,0.08);border:1px solid rgba(255,165,0,0.2);border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px;color:rgba(240,244,255,0.8);line-height:1.6}
+.pix-metodo-item{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;margin-bottom:8px;font-size:14px;font-weight:600;color:#f0f4ff}
+.pix-metodo-icon{font-size:22px;width:32px;text-align:center}
+.pix-metodo-desc{font-size:11px;color:#6a7d99;font-weight:400;display:block}
+/* Admin payment toggles */
+.adm-pgto-toggle{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,215,0,0.08)}
+.adm-pgto-toggle:last-child{border-bottom:none}
+.adm-pgto-label{font-size:13px;color:#f0f4ff;font-weight:500}
+.adm-pgto-sub{font-size:11px;color:#6a7d99}
+.toggle-sw{position:relative;width:42px;height:22px;flex-shrink:0}
+.toggle-sw input{opacity:0;width:0;height:0;position:absolute}
+.toggle-sl{position:absolute;inset:0;background:rgba(255,255,255,0.08);border-radius:22px;cursor:pointer;transition:0.3s;border:1px solid rgba(255,255,255,0.1)}
+.toggle-sl:before{content:'';position:absolute;width:16px;height:16px;left:2px;top:2px;background:#555;border-radius:50%;transition:0.3s}
+.toggle-sw input:checked~.toggle-sl{background:rgba(0,200,150,0.25);border-color:#00c896}
+.toggle-sw input:checked~.toggle-sl:before{transform:translateX(20px);background:#00c896}
+.pix-chave-cfg label{font-size:11px;color:#6a7d99;display:block;margin:10px 0 4px;text-transform:uppercase;letter-spacing:0.5px}
+.pix-chave-cfg label:first-child{margin-top:0}
+.pix-chave-cfg input{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;color:#f0f4ff;font-family:'Share Tech Mono',monospace;font-size:13px;width:100%;outline:none;transition:border 0.2s}
+.pix-chave-cfg input:focus{border-color:#00c896}
 </style>
 </head>
 <body>
@@ -601,7 +650,7 @@ body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;mi
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
         <div>
           <div style="font-size:12px;color:var(--success);font-weight:700;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px">✅ PIX — Sempre ativo</div>
-          <div class="pix-chave-config">
+          <div class="pix-chave-cfg">
             <label>Tipo da Chave PIX</label>
             <input type="text" id="adm-pix-tipo" placeholder="Ex: E-mail, CPF, Telefone, Aleatória" />
             <label>Chave PIX</label>
@@ -616,19 +665,19 @@ body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;mi
           <div id="adm-outros-lista">
             <div class="adm-pgto-toggle">
               <div><div class="adm-pgto-label">💳 Cartão de Crédito</div><div class="adm-pgto-sub">Via maquininha no local</div></div>
-              <label class="toggle-switch"><input type="checkbox" id="tog-credito" /><span class="toggle-slider"></span></label>
+              <label class="toggle-sw"><input type="checkbox" id="tog-credito"><span class="toggle-sl"></span></label>
             </div>
             <div class="adm-pgto-toggle">
               <div><div class="adm-pgto-label">💳 Cartão de Débito</div><div class="adm-pgto-sub">Via maquininha no local</div></div>
-              <label class="toggle-switch"><input type="checkbox" id="tog-debito" /><span class="toggle-slider"></span></label>
+              <label class="toggle-sw"><input type="checkbox" id="tog-debito"><span class="toggle-sl"></span></label>
             </div>
             <div class="adm-pgto-toggle">
               <div><div class="adm-pgto-label">💵 Dinheiro</div><div class="adm-pgto-sub">Pagamento presencial</div></div>
-              <label class="toggle-switch"><input type="checkbox" id="tog-dinheiro" /><span class="toggle-slider"></span></label>
+              <label class="toggle-sw"><input type="checkbox" id="tog-dinheiro"><span class="toggle-sl"></span></label>
             </div>
             <div class="adm-pgto-toggle">
               <div><div class="adm-pgto-label">🔄 Transferência</div><div class="adm-pgto-sub">TED/DOC bancário</div></div>
-              <label class="toggle-switch"><input type="checkbox" id="tog-transferencia" /><span class="toggle-slider"></span></label>
+              <label class="toggle-sw"><input type="checkbox" id="tog-transferencia"><span class="toggle-sl"></span></label>
             </div>
           </div>
           <button class="btn-admin" style="margin-top:12px" onclick="salvarMetodos()">SALVAR MÉTODOS</button>
@@ -805,7 +854,7 @@ function abrirPagamento() {
   tabOutros.style.display = outros.length > 0 ? 'flex' : 'none';
   const lista = document.getElementById('pix-metodos-lista');
   lista.innerHTML = outros.map(m => 
-    `<div class="pix-metodo-btn"><div class="pix-metodo-icon">${m.icon}</div><div><div>${m.nome}</div><div class="pix-metodo-desc">${m.desc||''}</div></div></div>`
+    `<div class="pix-metodo-item"><div class="pix-metodo-icon">${m.icon}</div><div><div>${m.nome}</div><span class="pix-metodo-desc">${m.desc||''}</span></div></div>`
   ).join('');
 
   // Gerar QR Code PIX
