@@ -1,0 +1,14 @@
+{
+  "name": "galzgames-ingressos",
+  "version": "1.0.0",
+  "description": "Sistema de ingressos online GalzGames - sem dependências externas",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["ingressos", "eventos", "galzgames", "tickets"],
+  "author": "GalzGames",
+  "license": "MIT",
+  "engines": { "node": ">=14.0.0" }
+}
