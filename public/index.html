@@ -430,6 +430,41 @@ body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;mi
 .reset-cancel-btn:hover{border-color:var(--muted)}
 .btn-reset{background:linear-gradient(135deg,#e94560,#c0392b);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all 0.2s;box-shadow:0 4px 15px rgba(233,69,96,0.3)}
 .btn-reset:hover{opacity:0.9;transform:translateY(-1px)}
+
+/* ===== AGUARDANDO PAGAMENTO ===== */
+.pix-aguardando{text-align:center;padding:10px 0}
+.pix-aguard-icon{font-size:52px;margin-bottom:12px;animation:pulse-icon 2s infinite}
+@keyframes pulse-icon{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.pix-aguard-title{font-family:'Orbitron',monospace;font-size:15px;font-weight:700;color:var(--accent);margin-bottom:6px}
+.pix-aguard-sub{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px}
+.pix-aguard-num{font-family:'Share Tech Mono',monospace;font-size:22px;font-weight:700;color:#00c896;letter-spacing:3px;background:rgba(0,200,150,0.1);border:1px solid rgba(0,200,150,0.3);border-radius:10px;padding:10px 20px;display:inline-block;margin-bottom:16px}
+.pix-check-btn{width:100%;background:rgba(255,215,0,0.1);border:1px solid var(--accent);color:var(--accent);border-radius:10px;padding:12px;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all 0.2s;margin-bottom:8px}
+.pix-check-btn:hover{background:rgba(255,215,0,0.2)}
+/* Admin QR upload cards */
+.qr-tipo-card{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px}
+.qr-tipo-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.qr-tipo-name{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;color:var(--accent)}
+.qr-tipo-price{font-size:13px;color:var(--success);font-weight:600}
+.qr-img-preview{width:100%;height:140px;border-radius:8px;border:2px dashed rgba(255,215,0,0.3);display:flex;align-items:center;justify-content:center;margin-bottom:10px;overflow:hidden;cursor:pointer;transition:all 0.2s;position:relative}
+.qr-img-preview:hover{border-color:var(--accent);background:rgba(255,215,0,0.05)}
+.qr-img-preview img{width:100%;height:100%;object-fit:contain;display:none}
+.qr-img-placeholder{text-align:center;color:var(--muted);font-size:12px;pointer-events:none}
+.qr-img-placeholder div{font-size:28px;margin-bottom:6px}
+.qr-codigo-input{background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:11px;width:100%;resize:vertical;min-height:60px;outline:none;margin-top:6px}
+.qr-codigo-input:focus{border-color:var(--accent)}
+/* Pendentes admin */
+.pendente-card{background:rgba(255,165,0,0.07);border:1px solid rgba(255,165,0,0.25);border-radius:10px;padding:14px;margin-bottom:10px}
+.pendente-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.pendente-num{font-family:'Share Tech Mono',monospace;font-size:16px;font-weight:700;color:var(--gold)}
+.pendente-tipo{font-size:12px;color:var(--muted);background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:20px}
+.pendente-nome{font-size:13px;color:var(--text);margin-bottom:4px}
+.pendente-valor{font-size:13px;color:var(--success);font-weight:600}
+.pendente-btns{display:flex;gap:8px;margin-top:10px}
+.btn-aprovar{flex:1;background:linear-gradient(135deg,#00c896,#00a07a);color:#fff;border:none;border-radius:8px;padding:9px;font-family:'Orbitron',monospace;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.5px;transition:all 0.2s}
+.btn-aprovar:hover{opacity:0.9}
+.btn-rejeitar{flex:1;background:transparent;color:#e94560;border:1px solid rgba(233,69,96,0.4);border-radius:8px;padding:9px;font-family:'Orbitron',monospace;font-size:10px;font-weight:700;cursor:pointer;transition:all 0.2s}
+.btn-rejeitar:hover{background:rgba(233,69,96,0.1)}
+.badge-pendente{background:rgba(255,165,0,0.2);color:var(--gold);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700}
 </style>
 </head>
 <body>
@@ -930,55 +965,48 @@ function abrirPagamento() {
   if (!name || !email || !cpf) { showToast('Preencha todos os campos!'); return; }
   if (!email.includes('@')) { showToast('E-mail inválido!'); return; }
 
-  const pgto = config.pagamento || {};
-  const chave = pgto.pixChave || 'galzgames@gmail.com';
-  const tipoChave = pgto.pixTipo || 'E-mail';
-  const nomeRec = pgto.pixNome || 'GalzGames';
-
-  // Calcular total (valor fixo por tipo)
-  const precosFixos = { normal: 60, vip: 150, meia: 30 };
   const p2 = config.precos || {};
   const valorUnit = parseFloat(
-    (selType === 'normal' ? (p2.normal?.valor || 60) :
-     selType === 'vip'    ? (p2.vip?.valor    || 150) :
-                            (p2.meia?.valor   || 30))
+    selType === 'normal' ? (p2.normal?.valor || 60) :
+    selType === 'vip'    ? (p2.vip?.valor    || 150) :
+                           (p2.meia?.valor   || 30)
   );
   const total = valorUnit * qty;
   const totalFmt = 'R$ ' + total.toFixed(2).replace('.',',');
 
   document.getElementById('pix-modal-sub').textContent = selTypeName + ' • ' + qty + 'x ' + selPrice;
   document.getElementById('pix-total').textContent = totalFmt;
-  document.getElementById('pix-copiaecola').textContent = chave;
-  document.getElementById('pix-chave-disp').textContent = chave;
-  document.getElementById('pix-tipo-chave').textContent = tipoChave;
-  document.getElementById('pix-nome-disp').textContent = nomeRec;
 
-  // Mostrar/ocultar aba Outros
-  const outros = pgto.outros || [];
-  const tabOutros = document.getElementById('tab-outros');
-  tabOutros.style.display = outros.length > 0 ? 'flex' : 'none';
-  const lista = document.getElementById('pix-metodos-lista');
-  lista.innerHTML = outros.map(m => 
-    `<div class="pix-metodo-item"><div class="pix-metodo-icon">${m.icon}</div><div><div>${m.nome}</div><span class="pix-metodo-desc">${m.desc||''}</span></div></div>`
-  ).join('');
+  // Carregar QR Code cadastrado pelo admin para este tipo
+  const qrCodes = config.qrCodes || {};
+  const qrTipo = qrCodes[selType] || {};
 
-  // Gerar QR Code PIX real BRCode EMV
-  const pixNomeLimpo = (pgto.pixNome || 'GalzGames').substring(0, 25);
-  const brcode = gerarBRCode(chave, pixNomeLimpo, 'Joao Pessoa', total);
-  document.getElementById('pix-copiaecola').textContent = brcode;
-  drawQRPix(brcode, 'pix-qr-canvas');
-  pixTab('qr');
+  // Imagem
+  const imgEl = document.getElementById('pix-qr-img');
+  const canvasEl = document.getElementById('pix-qr-canvas');
+  const placeholder = document.getElementById('pix-qr-placeholder');
+  if (qrTipo.img) {
+    imgEl.src = qrTipo.img;
+    imgEl.style.display = 'block';
+    canvasEl.style.display = 'none';
+    placeholder.style.display = 'none';
+  } else {
+    imgEl.style.display = 'none';
+    placeholder.style.display = 'flex';
+    canvasEl.style.display = 'none';
+  }
+
+  // Código copia e cola
+  const codigo = qrTipo.codigo || '(QR Code não cadastrado pelo admin)';
+  document.getElementById('pix-copiaecola').textContent = codigo;
+
+  // Mostrar tela QR
+  document.getElementById('pix-screen-qr').style.display = 'block';
+  document.getElementById('pix-screen-aguardando').style.display = 'none';
   document.getElementById('pix-modal-bg').style.display = 'flex';
 }
 
-function pixTab(t) {
-  ['qr','chave','outros'].forEach(k => {
-    const el = document.getElementById('pix-tab-'+k);
-    if(el) el.style.display = k===t ? 'block' : 'none';
-    const btn = document.querySelector(`.pix-tab[onclick="pixTab('${k}')"]`);
-    if(btn) btn.classList.toggle('active', k===t);
-  });
-}
+// pixTab removido - novo sistema de telas
 
 function fecharPix() {
   document.getElementById('pix-modal-bg').style.display = 'none';
@@ -1099,36 +1127,66 @@ function drawQRFallback(text, canvasId, size, color) {
   fp(0,0); fp(cells-7,0); fp(0,cells-7);
 }
 
-async function confirmarPagamento(metodo) {
-  fecharPix();
-  const btn = document.getElementById('btn-gen');
-  btn.disabled = true; btn.textContent = 'Gerando ingresso...';
+let pedidoPendente = null;
 
+async function enviarPedido() {
   const name = document.getElementById('f-name').value.trim();
   const email = document.getElementById('f-email').value.trim();
   const cpf = document.getElementById('f-cpf').value.trim();
 
+  const p2 = config.precos || {};
+  const valorUnit = parseFloat(
+    selType === 'normal' ? (p2.normal?.valor || 60) :
+    selType === 'vip'    ? (p2.vip?.valor    || 150) :
+                           (p2.meia?.valor   || 30)
+  );
+  const total = valorUnit * qty;
+  const price = 'R$ ' + total.toFixed(2).replace('.',',');
+
   try {
-    const r = await fetch(API + '/api/tickets', {
+    const r = await fetch(API + '/api/pedidos', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ name, email, cpf, type: selTypeName, typeKey: selType, price: selPrice, qty, pagamento: metodo })
+      body: JSON.stringify({ name, email, cpf, type: selTypeName, typeKey: selType, price, qty })
     });
-    const ticket = await r.json();
-    currentTicket = ticket;
-    renderTicket(ticket);
-    await loadTickets();
-    if(metodo === 'outro') {
-      showToast('Solicitação enviada! Aguarde confirmação.');
-    } else {
-      showToast('Pagamento confirmado! Ingresso gerado!');
-    }
-    showPage('meu-ingresso');
+    const pedido = await r.json();
+    pedidoPendente = pedido;
+    document.getElementById('pix-pedido-num').textContent = '#' + pedido.number;
+    document.getElementById('pix-screen-qr').style.display = 'none';
+    document.getElementById('pix-screen-aguardando').style.display = 'block';
+    showToast('Pedido registrado! Aguarde aprovação.');
   } catch {
-    showToast('Erro ao gerar ingresso. Verifique o servidor.');
-  } finally {
-    btn.disabled = false; btn.textContent = '💚 PAGAR E GERAR INGRESSO';
+    showToast('Erro ao registrar pedido.');
   }
 }
+
+async function verificarPedido() {
+  if (!pedidoPendente) return;
+  try {
+    const r = await fetch(API + '/api/pedidos/' + pedidoPendente.number);
+    const pedido = await r.json();
+    if (pedido.status === 'aprovado' && pedido.ticketNumber) {
+      // Buscar ingresso gerado
+      const tickets = await fetch(API + '/api/tickets').then(r=>r.json());
+      const ticket = tickets.find(t => t.number === pedido.ticketNumber);
+      if (ticket) {
+        currentTicket = ticket;
+        renderTicket(ticket);
+        fecharPix();
+        showPage('meu-ingresso');
+        showToast('🎉 Pagamento confirmado! Ingresso gerado!');
+      }
+    } else if (pedido.status === 'rejeitado') {
+      showToast('❌ Pedido rejeitado pelo admin.');
+      fecharPix();
+    } else {
+      showToast('⏳ Ainda aguardando confirmação...');
+    }
+  } catch {
+    showToast('Erro ao verificar pedido.');
+  }
+}
+
+async function confirmarPagamento(metodo) { enviarPedido(); }
 
 async function comprarIngresso() { abrirPagamento(); }
 
@@ -1269,49 +1327,110 @@ function copiarCodigo() {
 }
 
 // ===== ADMIN PAGAMENTO =====
-const metodosList = [
-  { id:'credito', icon:'💳', nome:'Cartão de Crédito', desc:'Via maquininha no local' },
-  { id:'debito',  icon:'💳', nome:'Cartão de Débito',  desc:'Via maquininha no local' },
-  { id:'dinheiro',icon:'💵', nome:'Dinheiro',           desc:'Pagamento presencial'    },
-  { id:'transferencia',icon:'🔄', nome:'Transferência', desc:'TED/DOC bancário'        }
-];
+
 
 function applyPagamento() {
-  const pgto = config.pagamento || {};
-  if(document.getElementById('adm-pix-chave')) {
-    document.getElementById('adm-pix-chave').value = pgto.pixChave || '';
-    document.getElementById('adm-pix-tipo').value  = pgto.pixTipo  || '';
-    document.getElementById('adm-pix-nome').value  = pgto.pixNome  || '';
-    const ativos = (pgto.outros||[]).map(o=>o.id);
-    metodosList.forEach(m => {
-      const el = document.getElementById('tog-'+m.id);
-      if(el) el.checked = ativos.includes(m.id);
-    });
-  }
+  const qr = config.qrCodes || {};
+  const p2 = config.precos || {};
+  ['normal','vip','meia'].forEach(tipo => {
+    const d = qr[tipo] || {};
+    const img = document.getElementById('qr-img-' + tipo);
+    const prev = document.getElementById('qr-prev-' + tipo);
+    const placeholder = prev?.querySelector('.qr-img-placeholder');
+    const codeEl = document.getElementById('qr-code-' + tipo);
+    if (img && d.img) {
+      img.src = d.img; img.style.display = 'block';
+      if(placeholder) placeholder.style.display = 'none';
+    }
+    if (codeEl && d.codigo) codeEl.value = d.codigo;
+    // Update price display
+    const priceEl = document.getElementById('qr-price-' + tipo);
+    if (priceEl) {
+      const val = tipo==='normal'?(p2.normal?.valor||60):tipo==='vip'?(p2.vip?.valor||150):(p2.meia?.valor||30);
+      priceEl.textContent = 'R$ ' + parseFloat(val).toFixed(2).replace('.',',');
+    }
+  });
+  // Load pendentes
+  loadPendentes();
 }
 
-async function salvarPagamento() {
-  const pgto = config.pagamento || {};
-  pgto.pixChave = document.getElementById('adm-pix-chave').value.trim();
-  pgto.pixTipo  = document.getElementById('adm-pix-tipo').value.trim();
-  pgto.pixNome  = document.getElementById('adm-pix-nome').value.trim();
+function uploadQRImg(tipo, input) {
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('qr-img-' + tipo);
+    const placeholder = document.getElementById('qr-prev-' + tipo)?.querySelector('.qr-img-placeholder');
+    img.src = e.target.result; img.style.display = 'block';
+    if(placeholder) placeholder.style.display = 'none';
+    if(!config.qrCodes) config.qrCodes = {};
+    if(!config.qrCodes[tipo]) config.qrCodes[tipo] = {};
+    config.qrCodes[tipo].img = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function salvarQRCodes() {
+  if(!config.qrCodes) config.qrCodes = {};
+  ['normal','vip','meia'].forEach(tipo => {
+    const codigo = document.getElementById('qr-code-' + tipo)?.value.trim();
+    if(!config.qrCodes[tipo]) config.qrCodes[tipo] = {};
+    if(codigo) config.qrCodes[tipo].codigo = codigo;
+  });
   try {
-    await fetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ pagamento: pgto }) });
-    config.pagamento = pgto;
-    showToast('Dados PIX salvos!');
+    await fetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ qrCodes: config.qrCodes }) });
+    showToast('QR Codes salvos!');
   } catch { showToast('Erro ao salvar.'); }
 }
 
-async function salvarMetodos() {
-  const pgto = config.pagamento || {};
-  pgto.outros = metodosList.filter(m => document.getElementById('tog-'+m.id)?.checked);
+async function loadPendentes() {
   try {
-    await fetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ pagamento: pgto }) });
-    config.pagamento = pgto;
-    applyPagamento();
-    showToast('Métodos de pagamento salvos!');
-  } catch { showToast('Erro ao salvar.'); }
+    const r = await fetch(API + '/api/pedidos');
+    const pedidos = await r.json();
+    const pendentes = pedidos.filter(p => p.status === 'pendente');
+    const badge = document.getElementById('badge-pendentes');
+    if(badge) badge.textContent = pendentes.length;
+    const lista = document.getElementById('lista-pendentes');
+    if(!lista) return;
+    if(!pendentes.length) {
+      lista.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Nenhum pedido pendente</div>';
+      return;
+    }
+    lista.innerHTML = pendentes.map(p => `
+      <div class="pendente-card">
+        <div class="pendente-header">
+          <span class="pendente-num">#${p.number}</span>
+          <span class="pendente-tipo">${p.type}</span>
+        </div>
+        <div class="pendente-nome">${p.name} • ${p.email}</div>
+        <div class="pendente-valor">${p.price} • Qtd: ${p.qty}</div>
+        <div class="pendente-btns">
+          <button class="btn-aprovar" onclick="aprovarPedido('${p.number}')">✅ APROVAR</button>
+          <button class="btn-rejeitar" onclick="rejeitarPedido('${p.number}')">❌ REJEITAR</button>
+        </div>
+      </div>
+    `).join('');
+  } catch { console.log('Erro ao carregar pendentes'); }
 }
+
+async function aprovarPedido(number) {
+  try {
+    await fetch(API + '/api/pedidos/' + number + '/aprovar', { method:'POST' });
+    showToast('Pedido #' + number + ' aprovado! Ingresso gerado.');
+    loadPendentes();
+    loadTickets();
+  } catch { showToast('Erro ao aprovar.'); }
+}
+
+async function rejeitarPedido(number) {
+  try {
+    await fetch(API + '/api/pedidos/' + number + '/rejeitar', { method:'POST' });
+    showToast('Pedido #' + number + ' rejeitado.');
+    loadPendentes();
+  } catch { showToast('Erro ao rejeitar.'); }
+}
+
+async function salvarPagamento() { salvarQRCodes(); }
+async function salvarMetodos() { salvarQRCodes(); }
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -1334,47 +1453,44 @@ init();
         <div class="pix-valor-label">Total a pagar</div>
         <div class="pix-valor-num" id="pix-total">R$ 0,00</div>
       </div>
-      <div class="pix-tabs">
-        <button class="pix-tab active" onclick="pixTab('qr')">QR Code</button>
-        <button class="pix-tab" onclick="pixTab('chave')">Chave PIX</button>
-        <button class="pix-tab" id="tab-outros" onclick="pixTab('outros')" style="display:none">Outros</button>
-      </div>
-      <div id="pix-tab-qr" style="display:block">
+
+      <!-- TELA 1: QR CODE -->
+      <div id="pix-screen-qr" style="display:block">
         <div class="pix-qr-wrap">
-          <div class="pix-qr-box"><canvas id="pix-qr-canvas" width="180" height="180"></canvas></div>
-          <div style="font-size:12px;color:var(--muted)">Escaneie com o app do seu banco</div>
+          <div class="pix-qr-box" id="pix-qr-img-box">
+            <img id="pix-qr-img" style="width:180px;height:180px;object-fit:contain;display:none" alt="QR PIX" />
+            <canvas id="pix-qr-canvas" width="180" height="180" style="display:none"></canvas>
+            <div id="pix-qr-placeholder" style="width:180px;height:180px;display:flex;align-items:center;justify-content:center;color:#999;font-size:12px;text-align:center">QR Code não<br>cadastrado</div>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px">Escaneie com o app do seu banco</div>
         </div>
         <div class="pix-key-box">
-          <div class="pix-key-label">Código PIX / Chave</div>
+          <div class="pix-key-label">Código PIX Copia e Cola</div>
           <div class="pix-key-row">
-            <div class="pix-key-val" id="pix-copiaecola">galzgames@gmail.com</div>
+            <div class="pix-key-val" id="pix-copiaecola" style="font-size:11px;word-break:break-all">—</div>
             <button class="pix-copy-btn" onclick="copiarPix()">COPIAR</button>
           </div>
         </div>
         <div class="pix-steps">
           <div class="pix-step"><div class="pix-step-num">1</div><span>Abra o app do banco → PIX</span></div>
-          <div class="pix-step"><div class="pix-step-num">2</div><span>Escaneie o QR Code ou copie a chave</span></div>
-          <div class="pix-step"><div class="pix-step-num">3</div><span>Após pagar, clique em "Já Paguei"</span></div>
+          <div class="pix-step"><div class="pix-step-num">2</div><span>Escaneie o QR Code ou copie o código</span></div>
+          <div class="pix-step"><div class="pix-step-num">3</div><span>Pague o valor exato e aguarde confirmação</span></div>
         </div>
-        <button class="pix-confirm-btn" onclick="confirmarPagamento('pix')">✅ JÁ PAGUEI — GERAR INGRESSO</button>
+        <button class="pix-confirm-btn" onclick="enviarPedido()">📲 ENVIEI O PIX — AGUARDAR CONFIRMAÇÃO</button>
         <button class="pix-cancel-btn" onclick="fecharPix()">Cancelar</button>
       </div>
-      <div id="pix-tab-chave" style="display:none">
-        <div class="pix-key-box"><div class="pix-key-label">Tipo de Chave</div><div class="pix-key-val" id="pix-tipo-chave" style="color:var(--accent)">E-mail</div></div>
-        <div class="pix-key-box">
-          <div class="pix-key-label">Chave PIX</div>
-          <div class="pix-key-row"><div class="pix-key-val" id="pix-chave-disp">galzgames@gmail.com</div><button class="pix-copy-btn" onclick="copiarChave()">COPIAR</button></div>
+
+      <!-- TELA 2: AGUARDANDO -->
+      <div id="pix-screen-aguardando" style="display:none">
+        <div class="pix-aguardando">
+          <div class="pix-aguard-icon">⏳</div>
+          <div class="pix-aguard-title">Pedido Enviado!</div>
+          <div class="pix-aguard-sub">Seu pedido foi registrado. Após confirmarmos o pagamento do PIX, seu ingresso será liberado.</div>
+          <div class="pix-aguard-num" id="pix-pedido-num">#000000</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Guarde este número para acompanhar</div>
+          <button class="pix-check-btn" onclick="verificarPedido()">🔍 VERIFICAR SE FOI APROVADO</button>
+          <button class="pix-cancel-btn" onclick="fecharPix()">Fechar</button>
         </div>
-        <div class="pix-key-box"><div class="pix-key-label">Recebedor</div><div class="pix-key-val" id="pix-nome-disp">GalzGames</div></div>
-        <div style="height:14px"></div>
-        <button class="pix-confirm-btn" onclick="confirmarPagamento('pix')">✅ JÁ PAGUEI — GERAR INGRESSO</button>
-        <button class="pix-cancel-btn" onclick="fecharPix()">Cancelar</button>
-      </div>
-      <div id="pix-tab-outros" style="display:none">
-        <div class="pix-outros-info"><strong>⚠️ Atenção:</strong> Outros métodos devem ser combinados com o organizador. O ingresso será gerado após confirmação manual.</div>
-        <div class="pix-metodos" id="pix-metodos-lista"></div>
-        <button class="pix-confirm-btn" style="background:linear-gradient(135deg,#e94560,#c0392b)" onclick="confirmarPagamento('outro')">📩 SOLICITAR INGRESSO</button>
-        <button class="pix-cancel-btn" onclick="fecharPix()">Cancelar</button>
       </div>
     </div>
   </div>
