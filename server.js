@@ -33,7 +33,7 @@ async function connectMongo() {
         vip:    { nome: 'VIP', valor: 150, qtd: 60 },
         meia:   { nome: 'Meia-Entrada', valor: 30, qtd: 100 }
       },
-      pagamento: { pixChave: 'galzgames@gmail.com', pixTipo: 'E-mail', pixNome: 'GalzGames', outros: [] }
+      pagamento: { pixChave: '+5583981663576', pixTipo: 'Telefone', pixNome: 'GalzGames', outros: [] }
     });
   }
 }
