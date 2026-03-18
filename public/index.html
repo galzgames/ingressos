@@ -690,7 +690,7 @@ body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;mi
             <label>Tipo da Chave PIX</label>
             <input type="text" id="adm-pix-tipo" placeholder="Ex: E-mail, CPF, Telefone, Aleatória" />
             <label>Chave PIX</label>
-            <input type="text" id="adm-pix-chave" placeholder="Ex: galzgames@gmail.com" />
+            <input type="text" id="adm-pix-chave" placeholder="Ex: +5583981663576" />
             <label>Nome do Recebedor</label>
             <input type="text" id="adm-pix-nome" placeholder="Ex: GalzGames" />
           </div>
@@ -935,8 +935,14 @@ function abrirPagamento() {
   const tipoChave = pgto.pixTipo || 'E-mail';
   const nomeRec = pgto.pixNome || 'GalzGames';
 
-  // Calcular total
-  const valorUnit = parseFloat((selPrice || 'R$ 60,00').replace('R$','').replace(',','.').trim()) || 0;
+  // Calcular total (valor fixo por tipo)
+  const precosFixos = { normal: 60, vip: 150, meia: 30 };
+  const p2 = config.precos || {};
+  const valorUnit = parseFloat(
+    (selType === 'normal' ? (p2.normal?.valor || 60) :
+     selType === 'vip'    ? (p2.vip?.valor    || 150) :
+                            (p2.meia?.valor   || 30))
+  );
   const total = valorUnit * qty;
   const totalFmt = 'R$ ' + total.toFixed(2).replace('.',',');
 
@@ -956,8 +962,11 @@ function abrirPagamento() {
     `<div class="pix-metodo-item"><div class="pix-metodo-icon">${m.icon}</div><div><div>${m.nome}</div><span class="pix-metodo-desc">${m.desc||''}</span></div></div>`
   ).join('');
 
-  // Gerar QR Code PIX
-  drawQRPix(chave + '|' + totalFmt, 'pix-qr-canvas');
+  // Gerar QR Code PIX real BRCode EMV
+  const pixNomeLimpo = (pgto.pixNome || 'GalzGames').substring(0, 25);
+  const brcode = gerarBRCode(chave, pixNomeLimpo, 'Joao Pessoa', total);
+  document.getElementById('pix-copiaecola').textContent = brcode;
+  drawQRPix(brcode, 'pix-qr-canvas');
   pixTab('qr');
   document.getElementById('pix-modal-bg').style.display = 'flex';
 }
@@ -985,26 +994,109 @@ function copiarChave() {
   navigator.clipboard.writeText(val).then(() => showToast('Chave PIX copiada!'));
 }
 
+// ===== PIX BRCode EMV (padrão Banco Central) =====
+function pixCRC16(data) {
+  let crc = 0xFFFF;
+  for (let i = 0; i < data.length; i++) {
+    crc ^= data.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) {
+      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+      crc &= 0xFFFF;
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4, '0');
+}
+
+function pixField(id, value) {
+  return id + value.length.toString().padStart(2, '0') + value;
+}
+
+function gerarBRCode(chave, nome, cidade, valor) {
+  const merchantInfo = pixField('26',
+    pixField('00', 'BR.GOV.BCB.PIX') +
+    pixField('01', chave)
+  );
+  const additional = pixField('62', pixField('05', '***'));
+  const valorStr = valor.toFixed(2);
+  const nomeClean = nome.substring(0, 25).normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const cidadeClean = cidade.substring(0, 15).normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  
+  const payload =
+    pixField('00', '01') +
+    pixField('01', '12') +
+    merchantInfo +
+    pixField('52', '0000') +
+    pixField('53', '986') +
+    pixField('54', valorStr) +
+    pixField('58', 'BR') +
+    pixField('59', nomeClean) +
+    pixField('60', cidadeClean) +
+    additional +
+    '6304';
+  
+  return payload + pixCRC16(payload);
+}
+
 function drawQRPix(text, canvasId) {
+  // text aqui é o BRCode completo
+  renderQRCode(text, canvasId, 180, '#00a07a', '#ffffff');
+}
+
+// Renderiza QR Code real usando algoritmo Reed-Solomon simplificado
+// (usa qrcode-generator via CDN carregado no HTML)
+function renderQRCode(text, canvasId, size, darkColor, lightColor) {
   const canvas = document.getElementById(canvasId);
-  if(!canvas) return;
+  if (!canvas) return;
+  try {
+    // Usa qrcode global se disponível
+    if (typeof qrcode !== 'undefined') {
+      const qr = qrcode(0, 'M');
+      qr.addData(text);
+      qr.make();
+      const modules = qr.getModuleCount();
+      const ctx = canvas.getContext('2d');
+      canvas.width = size; canvas.height = size;
+      const cellSize = size / modules;
+      ctx.fillStyle = lightColor; ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = darkColor;
+      for (let r = 0; r < modules; r++) {
+        for (let c = 0; c < modules; c++) {
+          if (qr.isDark(r, c)) {
+            ctx.fillRect(
+              Math.floor(c * cellSize), Math.floor(r * cellSize),
+              Math.ceil(cellSize), Math.ceil(cellSize)
+            );
+          }
+        }
+      }
+    } else {
+      // fallback: desenha QR visual enquanto lib carrega
+      drawQRFallback(text, canvasId, size, darkColor);
+    }
+  } catch(e) {
+    drawQRFallback(text, canvasId, size, darkColor);
+  }
+}
+
+function drawQRFallback(text, canvasId, size, color) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  const sz = 180, cells = 25, cell = Math.floor(sz / cells);
-  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, sz, sz);
-  ctx.fillStyle = '#00a07a';
-  const seed = text.split('').reduce((a,c,i) => a + c.charCodeAt(0)*(i+11),0);
+  const cells = 29, cell = Math.floor(size / cells);
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = color || '#00a07a';
+  const seed = text.split('').reduce((a,c,i) => a + c.charCodeAt(0)*(i+11), 0);
   function bit(r,c) { const v=(seed^(r*31337+c*7919))*2654435761; return (v>>>16)%3!==0; }
   for(let r=0;r<cells;r++) for(let c=0;c<cells;c++) {
     const inFP=(r<8&&c<8)||(r<8&&c>cells-9)||(r>cells-9&&c<8);
     if(!inFP && bit(r,c)) ctx.fillRect(c*cell+1,r*cell+1,cell-1,cell-1);
   }
-  ctx.fillStyle='#00a07a';
   const fp=(ox,oy)=>{
     ctx.fillRect(ox*cell,oy*cell,7*cell,7*cell);
-    ctx.fillStyle='#fff';ctx.fillRect((ox+1)*cell,(oy+1)*cell,5*cell,5*cell);
-    ctx.fillStyle='#00a07a';ctx.fillRect((ox+2)*cell,(oy+2)*cell,3*cell,3*cell);
+    ctx.fillStyle='#fff'; ctx.fillRect((ox+1)*cell,(oy+1)*cell,5*cell,5*cell);
+    ctx.fillStyle=color||'#00a07a'; ctx.fillRect((ox+2)*cell,(oy+2)*cell,3*cell,3*cell);
   };
-  fp(0,0);fp(cells-7,0);fp(0,cells-7);
+  fp(0,0); fp(cells-7,0); fp(0,cells-7);
 }
 
 async function confirmarPagamento(metodo) {
