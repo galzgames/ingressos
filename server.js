@@ -41,7 +41,7 @@ async function connectMongo() {
   if (!MONGO_URI) { console.log('MONGO_URI nao definido, usando JSON local'); return; }
   try {
     const { MongoClient } = require('mongodb');
-    const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+    const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 15000, tls: true, tlsAllowInvalidCertificates: false, connectTimeoutMS: 15000, socketTimeoutMS: 45000 });
     await client.connect();
     db = client.db('galzgames');
     usingMongo = true;
@@ -116,6 +116,41 @@ async function resetTickets() {
     writeJSON(DATA_FILE, []);
   }
 }
+
+// ===== PEDIDOS =====
+const PEDIDOS_FILE = path.join(__dirname, 'data', 'pedidos.json');
+if (!fs.existsSync(PEDIDOS_FILE)) writeJSON(PEDIDOS_FILE, []);
+
+async function getPedidos() {
+  if (usingMongo && db) {
+    const p = await db.collection('pedidos').find({}).sort({ createdAt: -1 }).toArray();
+    return p.map(({ _id, ...r }) => r);
+  }
+  return readJSON(PEDIDOS_FILE) || [];
+}
+async function addPedido(pedido) {
+  if (usingMongo && db) { await db.collection('pedidos').insertOne(pedido); }
+  else { const p = readJSON(PEDIDOS_FILE)||[]; p.push(pedido); writeJSON(PEDIDOS_FILE, p); }
+}
+async function getPedido(number) {
+  if (usingMongo && db) { const p = await db.collection('pedidos').findOne({ number }); if(p){const{_id,...r}=p;return r;} return null; }
+  const p = readJSON(PEDIDOS_FILE)||[]; return p.find(x=>x.number===number)||null;
+}
+async function updatePedido(number, update) {
+  if (usingMongo && db) { await db.collection('pedidos').updateOne({ number }, { $set: update }); }
+  else { const p = readJSON(PEDIDOS_FILE)||[]; const i=p.findIndex(x=>x.number===number); if(i>=0){p[i]={...p[i],...update};writeJSON(PEDIDOS_FILE,p);} }
+}
+async function getNextPedidoNumber() {
+  const all = await getPedidos();
+  if(!all.length) return 'P10001';
+  const nums = all.map(p=>parseInt(p.number.replace('P',''))||10000);
+  return 'P' + (Math.max(...nums)+1);
+}
+function getNextNumberSync(all) {
+  if (!all || !all.length) return '100001';
+  return String(Math.max(...all.map(t => parseInt(t.number)||100000)) + 1);
+}
+
 async function getNextNumber() {
   const all = await getTickets();
   if (!all.length) return '100001';
@@ -208,6 +243,57 @@ const server = http.createServer(async (req, res) => {
       if (result.used) return jsonRes(res, 200, { valid:false, used:true, message:'Ingresso ja utilizado.', ticket:result.ticket });
       return jsonRes(res, 200, { valid:true, message:'Ingresso valido! Entrada liberada.', ticket:result.ticket });
     }
+    // GET /api/pedidos
+    if (pathname === '/api/pedidos' && req.method === 'GET') {
+      return jsonRes(res, 200, await getPedidos());
+    }
+    // GET /api/pedidos/:number
+    if (pathname.startsWith('/api/pedidos/') && !pathname.includes('/aprovar') && !pathname.includes('/rejeitar') && req.method === 'GET') {
+      const number = pathname.split('/')[3];
+      const pedido = await getPedido(number);
+      if (!pedido) return jsonRes(res, 404, { error: 'Pedido não encontrado.' });
+      return jsonRes(res, 200, pedido);
+    }
+    // POST /api/pedidos
+    if (pathname === '/api/pedidos' && req.method === 'POST') {
+      return parseBody(req, async body => {
+        const pedido = {
+          number: await getNextPedidoNumber(),
+          name: body.name, email: body.email, cpf: body.cpf,
+          type: body.type, typeKey: body.typeKey, price: body.price,
+          qty: body.qty || 1, status: 'pendente',
+          createdAt: new Date().toISOString()
+        };
+        await addPedido(pedido);
+        jsonRes(res, 201, pedido);
+      });
+    }
+    // POST /api/pedidos/:number/aprovar
+    if (pathname.includes('/aprovar') && pathname.startsWith('/api/pedidos/') && req.method === 'POST') {
+      const number = pathname.split('/')[3];
+      const pedido = await getPedido(number);
+      if (!pedido) return jsonRes(res, 404, { error: 'Pedido não encontrado.' });
+      // Gerar ingresso
+      const all = await getTickets();
+      const ticket = {
+        id: require('crypto').randomUUID(),
+        number: getNextNumberSync(all),
+        name: pedido.name, email: pedido.email, cpf: pedido.cpf,
+        type: pedido.type, typeKey: pedido.typeKey, price: pedido.price,
+        qty: pedido.qty, pagamento: 'pix',
+        used: false, createdAt: new Date().toISOString()
+      };
+      await addTicket(ticket);
+      await updatePedido(number, { status: 'aprovado', ticketNumber: ticket.number, approvedAt: new Date().toISOString() });
+      return jsonRes(res, 200, { ok: true, ticket });
+    }
+    // POST /api/pedidos/:number/rejeitar
+    if (pathname.includes('/rejeitar') && pathname.startsWith('/api/pedidos/') && req.method === 'POST') {
+      const number = pathname.split('/')[3];
+      await updatePedido(number, { status: 'rejeitado', rejectedAt: new Date().toISOString() });
+      return jsonRes(res, 200, { ok: true });
+    }
+
     if (pathname === '/api/reset' && req.method === 'POST') {
       return parseBody(req, async body => {
         if (body.senha !== ADMIN_SENHA) return jsonRes(res, 401, { ok:false, error:'Senha incorreta.' });
