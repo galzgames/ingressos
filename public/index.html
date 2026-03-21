@@ -465,6 +465,33 @@ body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;mi
 .btn-rejeitar{flex:1;background:transparent;color:#e94560;border:1px solid rgba(233,69,96,0.4);border-radius:8px;padding:9px;font-family:'Orbitron',monospace;font-size:10px;font-weight:700;cursor:pointer;transition:all 0.2s}
 .btn-rejeitar:hover{background:rgba(233,69,96,0.1)}
 .badge-pendente{background:rgba(255,165,0,0.2);color:var(--gold);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700}
+
+/* ===== CAMERA SCANNER ===== */
+.cam-wrap{position:relative;width:100%;max-width:340px;margin:0 auto 16px;border-radius:16px;overflow:hidden;background:#000;display:none}
+.cam-wrap.active{display:block}
+#cam-video{width:100%;height:280px;object-fit:cover;display:block}
+.cam-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.cam-frame{width:200px;height:200px;position:relative}
+.cam-corner{position:absolute;width:28px;height:28px;border-color:var(--accent);border-style:solid;border-width:0}
+.cam-corner.tl{top:0;left:0;border-top-width:4px;border-left-width:4px;border-radius:4px 0 0 0}
+.cam-corner.tr{top:0;right:0;border-top-width:4px;border-right-width:4px;border-radius:0 4px 0 0}
+.cam-corner.bl{bottom:0;left:0;border-bottom-width:4px;border-left-width:4px;border-radius:0 0 0 4px}
+.cam-corner.br{bottom:0;right:0;border-bottom-width:4px;border-right-width:4px;border-radius:0 0 4px 0}
+.cam-scanline{position:absolute;left:10px;right:10px;height:3px;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:scan-move 2s ease-in-out infinite;border-radius:2px;box-shadow:0 0 8px var(--accent)}
+@keyframes scan-move{0%{top:10px;opacity:1}50%{top:calc(100% - 10px);opacity:1}100%{top:10px;opacity:1}}
+.cam-status{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:12px;padding:4px 12px;border-radius:20px;white-space:nowrap}
+.cam-btns{display:flex;gap:10px;margin-bottom:14px}
+.btn-cam{flex:1;background:rgba(255,215,0,0.1);border:1px solid var(--accent);color:var(--accent);border-radius:10px;padding:11px;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.2s;letter-spacing:0.5px}
+.btn-cam:hover{background:rgba(255,215,0,0.2)}
+.btn-cam.active-cam{background:var(--accent);color:#000}
+.btn-cam-stop{flex:1;background:rgba(233,69,96,0.1);border:1px solid #e94560;color:#e94560;border-radius:10px;padding:11px;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.2s}
+.btn-cam-stop:hover{background:rgba(233,69,96,0.2)}
+.cam-error{background:rgba(233,69,96,0.1);border:1px solid rgba(233,69,96,0.3);border-radius:10px;padding:12px;font-size:13px;color:#e94560;margin-bottom:14px;display:none}
+.scan-count{font-family:'Share Tech Mono',monospace;font-size:28px;font-weight:700;color:var(--success);margin-bottom:4px}
+.scan-count-label{font-size:12px;color:var(--muted);margin-bottom:16px}
+.result-flash{animation:flash-green 0.5s ease}
+@keyframes flash-green{0%,100%{background:transparent}50%{background:rgba(0,229,160,0.3)}}
+canvas#cam-canvas{display:none}
 </style>
 </head>
 <body>
@@ -628,13 +655,47 @@ body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;mi
 <!-- VALIDAR -->
 <div id="page-validar" class="page">
   <div class="validate-wrap">
-    <div class="scan-box">
-      <div class="scan-icon">📷</div>
-      <div class="scan-title">Validar Ingresso</div>
-      <div class="scan-sub">Digite o número do ingresso para verificar a entrada</div>
-      <input class="code-input" type="text" id="code-input" placeholder="000000" maxlength="6" onkeydown="if(event.key==='Enter')validarIngresso()" />
-      <button class="btn-validate" onclick="validarIngresso()">VALIDAR INGRESSO</button>
+
+    <!-- Contador de validações -->
+    <div style="margin-bottom:16px">
+      <div class="scan-count" id="scan-count">0</div>
+      <div class="scan-count-label">ingressos validados nesta sessão</div>
     </div>
+
+    <!-- Câmera -->
+    <div class="cam-wrap" id="cam-wrap">
+      <video id="cam-video" autoplay playsinline muted></video>
+      <canvas id="cam-canvas"></canvas>
+      <div class="cam-overlay">
+        <div class="cam-frame">
+          <div class="cam-corner tl"></div>
+          <div class="cam-corner tr"></div>
+          <div class="cam-corner bl"></div>
+          <div class="cam-corner br"></div>
+          <div class="cam-scanline"></div>
+        </div>
+      </div>
+      <div class="cam-status" id="cam-status">🔍 Aponte para o QR Code</div>
+    </div>
+
+    <div class="cam-error" id="cam-error"></div>
+
+    <!-- Botões câmera -->
+    <div class="cam-btns">
+      <button class="btn-cam" id="btn-cam-back" onclick="startCamera('user')">📱 Câmera Frontal</button>
+      <button class="btn-cam" id="btn-cam-env" onclick="startCamera('environment')">📷 Câmera Traseira</button>
+      <button class="btn-cam-stop" id="btn-cam-stop" onclick="stopCamera()" style="display:none">⏹ Parar</button>
+    </div>
+
+    <!-- Input manual -->
+    <div class="scan-box" style="padding:20px">
+      <div class="scan-title" style="font-size:14px;margin-bottom:10px">Ou digite o número</div>
+      <input class="code-input" type="text" id="code-input" placeholder="000000" maxlength="6"
+        onkeydown="if(event.key==='Enter')validarIngresso()"
+        oninput="this.value=this.value.replace(/\D/g,'')" />
+      <button class="btn-validate" onclick="validarIngresso()" style="margin-top:12px">VALIDAR INGRESSO</button>
+    </div>
+
     <div class="result-box" id="result-box">
       <div class="result-icon" id="res-icon">✅</div>
       <div class="result-title" id="res-title">Ingresso Válido!</div>
@@ -1252,38 +1313,57 @@ function drawQR(code, canvasId) {
 }
 
 // ===== VALIDAR =====
-async function validarIngresso() {
+async function validarIngresso(fromCamera) {
   const code = document.getElementById('code-input').value.trim();
-  if (!code) { showToast('Digite o número do ingresso!'); return; }
+  if (!code) { if(!fromCamera) showToast('Digite o número do ingresso!'); return; }
   const box = document.getElementById('result-box');
+  const camStatus = document.getElementById('cam-status');
+
   try {
     const r = await fetch(API + '/api/validate/' + code, { method:'POST' });
     const data = await r.json();
     if (data.valid) {
       SFX.validateOk();
-      box.className = 'result-box ok';
+      box.className = 'result-box ok result-flash';
       document.getElementById('res-icon').textContent = '✅';
-      document.getElementById('res-title').textContent = 'Ingresso Válido!';
-      document.getElementById('res-detail').textContent = `Titular: ${data.ticket.name} • ${data.ticket.type} • Entrada liberada!`;
+      document.getElementById('res-title').textContent = 'Ingresso Válido! Entrada Liberada!';
+      document.getElementById('res-detail').textContent = `👤 ${data.ticket.name} • 🎟 ${data.ticket.type} • 💰 ${data.ticket.price}`;
+      if(camStatus) camStatus.textContent = '✅ VÁLIDO — ' + data.ticket.name;
+      if(typeof updateScanCount === 'function') updateScanCount(true);
+      // Limpa o input após 2s para próxima leitura
+      setTimeout(() => {
+        document.getElementById('code-input').value = '';
+        if(camStatus) camStatus.textContent = '🔍 Aponte para o QR Code';
+      }, 2500);
     } else if (data.used) {
       SFX.validateErr();
       box.className = 'result-box err';
       document.getElementById('res-icon').textContent = '⚠️';
-      document.getElementById('res-title').textContent = 'Já Utilizado';
-      document.getElementById('res-detail').textContent = `Titular: ${data.ticket.name} • Ingresso já foi usado.`;
+      document.getElementById('res-title').textContent = 'Ingresso Já Utilizado!';
+      document.getElementById('res-detail').textContent = `👤 ${data.ticket.name} • ${data.ticket.type} • Entrada negada.`;
+      if(camStatus) camStatus.textContent = '⚠️ JÁ USADO — ' + data.ticket.name;
+      setTimeout(() => {
+        document.getElementById('code-input').value = '';
+        if(camStatus) camStatus.textContent = '🔍 Aponte para o QR Code';
+      }, 2500);
     } else {
       SFX.validateErr();
       box.className = 'result-box err';
       document.getElementById('res-icon').textContent = '❌';
-      document.getElementById('res-title').textContent = 'Inválido';
-      document.getElementById('res-detail').textContent = data.message;
+      document.getElementById('res-title').textContent = 'Ingresso Inválido!';
+      document.getElementById('res-detail').textContent = data.message || 'Número não encontrado.';
+      if(camStatus) camStatus.textContent = '❌ INVÁLIDO';
+      setTimeout(() => {
+        document.getElementById('code-input').value = '';
+        if(camStatus) camStatus.textContent = '🔍 Aponte para o QR Code';
+      }, 2000);
     }
   } catch {
     SFX.error();
     box.className = 'result-box err';
     document.getElementById('res-icon').textContent = '❌';
     document.getElementById('res-title').textContent = 'Erro de conexão';
-    document.getElementById('res-detail').textContent = 'Verifique se o servidor está rodando.';
+    document.getElementById('res-detail').textContent = 'Verifique a conexão com o servidor.';
   }
   box.style.display = 'block';
 }
@@ -1817,6 +1897,136 @@ window.addEventListener('load', () => {
 const _showToast = window.showToast;
 // Adiciona sons ao validar (intercepta resultado)
 const _origValidar = window.validarIngresso;
+</script>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script>
+// ===== CAMERA QR SCANNER =====
+let camStream = null;
+let camInterval = null;
+let scanCount = 0;
+let lastScanned = '';
+let lastScannedTime = 0;
+
+async function startCamera(facing) {
+  stopCamera();
+  const wrap = document.getElementById('cam-wrap');
+  const video = document.getElementById('cam-video');
+  const errEl = document.getElementById('cam-error');
+  const stopBtn = document.getElementById('btn-cam-stop');
+
+  errEl.style.display = 'none';
+
+  try {
+    const constraints = {
+      video: {
+        facingMode: facing || 'environment',
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    };
+    camStream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = camStream;
+    await video.play();
+    wrap.classList.add('active');
+    stopBtn.style.display = 'flex';
+
+    // Highlight active button
+    document.getElementById('btn-cam-back').classList.toggle('active-cam', facing === 'user');
+    document.getElementById('btn-cam-env').classList.toggle('active-cam', facing === 'environment');
+
+    // Start QR scanning loop
+    camInterval = setInterval(() => scanFrame(), 250);
+    document.getElementById('cam-status').textContent = '🔍 Aponte para o QR Code';
+    SFX.nav();
+  } catch(err) {
+    errEl.textContent = '❌ Câmera não disponível: ' + err.message;
+    errEl.style.display = 'block';
+    console.error('Camera error:', err);
+  }
+}
+
+function stopCamera() {
+  if (camStream) {
+    camStream.getTracks().forEach(t => t.stop());
+    camStream = null;
+  }
+  if (camInterval) { clearInterval(camInterval); camInterval = null; }
+  const wrap = document.getElementById('cam-wrap');
+  wrap.classList.remove('active');
+  document.getElementById('btn-cam-stop').style.display = 'none';
+  document.getElementById('btn-cam-back').classList.remove('active-cam');
+  document.getElementById('btn-cam-env').classList.remove('active-cam');
+}
+
+function scanFrame() {
+  const video = document.getElementById('cam-video');
+  const canvas = document.getElementById('cam-canvas');
+  if (!video || !camStream || video.readyState < 2) return;
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+
+  try {
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: 'dontInvert'
+    });
+
+    if (code && code.data) {
+      const now = Date.now();
+      // Evita escanear o mesmo código repetidamente em 3 segundos
+      if (code.data === lastScanned && now - lastScannedTime < 3000) return;
+      lastScanned = code.data;
+      lastScannedTime = now;
+
+      document.getElementById('cam-status').textContent = '✅ QR Code detectado!';
+
+      // Extrai número do QR Code (pode ser só o número ou URL com número)
+      let number = code.data.trim();
+      // Se for URL, pega o último segmento
+      if (number.includes('/')) number = number.split('/').pop();
+      // Se for só dígitos ou começa com #, limpa
+      number = number.replace('#','').replace(/\D/g,'');
+
+      if (number) {
+        document.getElementById('code-input').value = number;
+        document.getElementById('cam-status').textContent = '⚡ Validando #' + number + '...';
+        validarIngresso(true);
+      }
+    }
+  } catch(e) {}
+}
+
+// Atualiza contador
+function updateScanCount(valid) {
+  if (valid) {
+    scanCount++;
+    document.getElementById('scan-count').textContent = scanCount;
+    document.getElementById('scan-count').style.animation = 'none';
+    setTimeout(() => document.getElementById('scan-count').style.animation = '', 10);
+  }
+}
+
+// Para câmera quando muda de página
+const _origShowPage = window.showPage;
+window.showPage = function(id) {
+  if (id !== 'validar') stopCamera();
+  return _origShowPage(id);
+};
+
+// Auto-start câmera traseira quando entra em Validar
+const __origShowPage = window.showPage;
+window.showPage = function(id) {
+  const result = __origShowPage(id);
+  if (id === 'validar' && !camStream) {
+    setTimeout(() => startCamera('environment'), 300);
+  }
+  return result;
+};
 </script>
 
 </body>
