@@ -717,42 +717,59 @@ body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;mi
     </div>
 
     <div class="admin-card section-full">
-      <h3>💳 Configurações de Pagamento</h3>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
-        <div>
-          <div style="font-size:12px;color:var(--success);font-weight:700;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px">✅ PIX — Sempre ativo</div>
-          <div class="pix-chave-cfg">
-            <label>Tipo da Chave PIX</label>
-            <input type="text" id="adm-pix-tipo" placeholder="Ex: E-mail, CPF, Telefone, Aleatória" />
-            <label>Chave PIX</label>
-            <input type="text" id="adm-pix-chave" placeholder="Ex: +5583981663576" />
-            <label>Nome do Recebedor</label>
-            <input type="text" id="adm-pix-nome" placeholder="Ex: GalzGames" />
+      <h3>📲 QR Codes PIX por Tipo de Ingresso</h3>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px">
+
+        <div class="qr-tipo-card">
+          <div class="qr-tipo-header">
+            <span class="qr-tipo-name">🎟 NORMAL</span>
+            <span class="qr-tipo-price" id="qr-price-normal">R$ 60,00</span>
           </div>
-          <button class="btn-admin" style="margin-top:12px" onclick="salvarPagamento()">SALVAR PIX</button>
-        </div>
-        <div>
-          <div style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px">🔒 Outros Métodos (admin libera)</div>
-          <div id="adm-outros-lista">
-            <div class="adm-pgto-toggle">
-              <div><div class="adm-pgto-label">💳 Cartão de Crédito</div><div class="adm-pgto-sub">Via maquininha no local</div></div>
-              <label class="toggle-sw"><input type="checkbox" id="tog-credito"><span class="toggle-sl"></span></label>
-            </div>
-            <div class="adm-pgto-toggle">
-              <div><div class="adm-pgto-label">💳 Cartão de Débito</div><div class="adm-pgto-sub">Via maquininha no local</div></div>
-              <label class="toggle-sw"><input type="checkbox" id="tog-debito"><span class="toggle-sl"></span></label>
-            </div>
-            <div class="adm-pgto-toggle">
-              <div><div class="adm-pgto-label">💵 Dinheiro</div><div class="adm-pgto-sub">Pagamento presencial</div></div>
-              <label class="toggle-sw"><input type="checkbox" id="tog-dinheiro"><span class="toggle-sl"></span></label>
-            </div>
-            <div class="adm-pgto-toggle">
-              <div><div class="adm-pgto-label">🔄 Transferência</div><div class="adm-pgto-sub">TED/DOC bancário</div></div>
-              <label class="toggle-sw"><input type="checkbox" id="tog-transferencia"><span class="toggle-sl"></span></label>
-            </div>
+          <div class="qr-img-preview" id="qr-prev-normal" onclick="document.getElementById('qr-file-normal').click()">
+            <img id="qr-img-normal" alt="QR Normal" style="width:100%;height:100%;object-fit:contain;display:none" />
+            <div class="qr-img-placeholder"><div>📷</div>Clique para enviar<br>foto do QR Code</div>
           </div>
-          <button class="btn-admin" style="margin-top:12px" onclick="salvarMetodos()">SALVAR MÉTODOS</button>
+          <input type="file" id="qr-file-normal" accept="image/*" style="display:none" onchange="uploadQRImg('normal',this)" />
+          <div style="font-size:11px;color:var(--muted);margin:8px 0 4px;text-transform:uppercase;letter-spacing:0.5px">Código Copia e Cola</div>
+          <textarea class="qr-codigo-input" id="qr-code-normal" placeholder="Cole aqui o código PIX copia e cola..."></textarea>
         </div>
+
+        <div class="qr-tipo-card">
+          <div class="qr-tipo-header">
+            <span class="qr-tipo-name">⭐ VIP</span>
+            <span class="qr-tipo-price" id="qr-price-vip">R$ 150,00</span>
+          </div>
+          <div class="qr-img-preview" id="qr-prev-vip" onclick="document.getElementById('qr-file-vip').click()">
+            <img id="qr-img-vip" alt="QR VIP" style="width:100%;height:100%;object-fit:contain;display:none" />
+            <div class="qr-img-placeholder"><div>📷</div>Clique para enviar<br>foto do QR Code</div>
+          </div>
+          <input type="file" id="qr-file-vip" accept="image/*" style="display:none" onchange="uploadQRImg('vip',this)" />
+          <div style="font-size:11px;color:var(--muted);margin:8px 0 4px;text-transform:uppercase;letter-spacing:0.5px">Código Copia e Cola</div>
+          <textarea class="qr-codigo-input" id="qr-code-vip" placeholder="Cole aqui o código PIX copia e cola..."></textarea>
+        </div>
+
+        <div class="qr-tipo-card">
+          <div class="qr-tipo-header">
+            <span class="qr-tipo-name">🎓 MEIA</span>
+            <span class="qr-tipo-price" id="qr-price-meia">R$ 30,00</span>
+          </div>
+          <div class="qr-img-preview" id="qr-prev-meia" onclick="document.getElementById('qr-file-meia').click()">
+            <img id="qr-img-meia" alt="QR Meia" style="width:100%;height:100%;object-fit:contain;display:none" />
+            <div class="qr-img-placeholder"><div>📷</div>Clique para enviar<br>foto do QR Code</div>
+          </div>
+          <input type="file" id="qr-file-meia" accept="image/*" style="display:none" onchange="uploadQRImg('meia',this)" />
+          <div style="font-size:11px;color:var(--muted);margin:8px 0 4px;text-transform:uppercase;letter-spacing:0.5px">Código Copia e Cola</div>
+          <textarea class="qr-codigo-input" id="qr-code-meia" placeholder="Cole aqui o código PIX copia e cola..."></textarea>
+        </div>
+
+      </div>
+      <button class="btn-admin" onclick="salvarQRCodes()">💾 SALVAR QR CODES</button>
+    </div>
+
+    <div class="admin-card section-full">
+      <h3>⏳ Pedidos Aguardando Confirmação <span class="badge-pendente" id="badge-pendentes">0</span></h3>
+      <div id="lista-pendentes">
+        <div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Nenhum pedido pendente</div>
       </div>
     </div>
 
