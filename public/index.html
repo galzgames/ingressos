@@ -883,12 +883,16 @@ async function loadTickets() {
 
 // ===== NAVIGATION =====
 let adminLogado = false;
+let validarLogado = false;
 const ADMIN_SENHA = 'Suenia81@';
 
 function showPage(id) {
-  if (id === 'admin' && !adminLogado) {
+  if ((id === 'admin' || id === 'validar') && !adminLogado) {
+    document.getElementById('admin-login-bg').dataset.target = id;
     document.getElementById('admin-senha-input').value = '';
     document.getElementById('admin-login-err').style.display = 'none';
+    const sub = document.getElementById('admin-login-sub');
+    if (sub) sub.textContent = id === 'validar' ? 'Área restrita — Validação de Ingressos' : 'Digite a senha de administrador';
     document.getElementById('admin-login-bg').style.display = 'flex';
     return;
   }
@@ -906,7 +910,8 @@ function tentarLoginAdmin() {
   if (senha === ADMIN_SENHA) {
     adminLogado = true;
     document.getElementById('admin-login-bg').style.display = 'none';
-    showPage('admin');
+    const target = document.getElementById('admin-login-bg').dataset.target || 'admin';
+    showPage(target);
   } else {
     const err = document.getElementById('admin-login-err');
     err.style.display = 'block';
@@ -1523,7 +1528,7 @@ init();
     <div class="admin-login-header">
       <img src="/images/logo.png" class="admin-login-logo" alt="logo" />
       <div class="admin-login-title">Área Restrita</div>
-      <div class="admin-login-sub">Digite a senha de administrador</div>
+      <div class="admin-login-sub" id="admin-login-sub">Digite a senha de administrador</div>
     </div>
     <div class="admin-login-body">
       <label class="admin-login-label">Senha Admin</label>
