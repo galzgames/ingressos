@@ -151,6 +151,58 @@ function getNextNumberSync(all) {
   return String(Math.max(...all.map(t => parseInt(t.number)||100000)) + 1);
 }
 
+// ===== VALIDACAO CPF REAL =====
+function validarCPF(cpf) {
+  cpf = cpf.replace(/[^\d]/g, '');
+  if (cpf.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(cpf)) return false; // todos iguais
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += parseInt(cpf[i]) * (10 - i);
+  let rev = 11 - (sum % 11);
+  if (rev === 10 || rev === 11) rev = 0;
+  if (rev !== parseInt(cpf[9])) return false;
+  sum = 0;
+  for (let i = 0; i < 10; i++) sum += parseInt(cpf[i]) * (11 - i);
+  rev = 11 - (sum % 11);
+  if (rev === 10 || rev === 11) rev = 0;
+  return rev === parseInt(cpf[10]);
+}
+
+// ===== QR CODE SEGURO COM HASH =====
+function gerarQRHash(number, cpf, secret) {
+  const data = number + ':' + cpf + ':' + secret;
+  let hash = 0;
+  for (let i = 0; i < data.length; i++) {
+    const chr = data.charCodeAt(i);
+    hash = ((hash << 5) - hash) + chr;
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(36).toUpperCase().padStart(8, '0');
+}
+
+const QR_SECRET = process.env.QR_SECRET || 'galzgames2025retrogamerday';
+
+// ===== VERIFICAR CPF DUPLICADO =====
+async function cpfJaCadastrado(cpf, typeKey) {
+  const cpfLimpo = cpf.replace(/[^\d]/g, '');
+  // Verifica em pedidos
+  const pedidos = await getPedidos();
+  const pedidoDup = pedidos.find(p => 
+    p.cpf && p.cpf.replace(/[^\d]/g, '') === cpfLimpo && 
+    p.typeKey === typeKey && 
+    (p.status === 'pendente' || p.status === 'aprovado')
+  );
+  if (pedidoDup) return { duplicado: true, tipo: 'pedido', numero: pedidoDup.number };
+  // Verifica em tickets
+  const tickets = await getTickets();
+  const ticketDup = tickets.find(t => 
+    t.cpf && t.cpf.replace(/[^\d]/g, '') === cpfLimpo && 
+    t.typeKey === typeKey
+  );
+  if (ticketDup) return { duplicado: true, tipo: 'ingresso', numero: ticketDup.number };
+  return { duplicado: false };
+}
+
 async function getNextNumber() {
   const all = await getTickets();
   if (!all.length) return '100001';
@@ -224,10 +276,26 @@ const server = http.createServer(async (req, res) => {
     }
     if (pathname === '/api/tickets' && req.method === 'POST') {
       return parseBody(req, async body => {
+        // 1. Validar CPF
+        const cpfLimpo = (body.cpf||'').replace(/[^\d]/g, '');
+        if (!validarCPF(cpfLimpo)) {
+          return jsonRes(res, 400, { error: 'CPF inválido. Verifique e tente novamente.' });
+        }
+        // 2. Verificar duplicidade de CPF por tipo
+        const dup = await cpfJaCadastrado(cpfLimpo, body.typeKey);
+        if (dup.duplicado) {
+          return jsonRes(res, 409, { error: `Este CPF já possui um ingresso ${body.type} cadastrado (Pedido #${dup.numero}).` });
+        }
+        // 3. Gerar ingresso com QR Code seguro
+        const number = await getNextNumber();
+        const qrHash = gerarQRHash(number, cpfLimpo, QR_SECRET);
         const ticket = {
           id: crypto.randomUUID(),
-          number: await getNextNumber(),
-          name: body.name, email: body.email, cpf: body.cpf,
+          number,
+          qrHash,
+          qrCode: number + ':' + qrHash, // conteúdo do QR Code
+          name: body.name, email: body.email,
+          cpf: cpfLimpo.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4'),
           type: body.type, typeKey: body.typeKey, price: body.price,
           qty: body.qty||1, pagamento: body.pagamento||'pix',
           used: false, createdAt: new Date().toISOString()
@@ -237,11 +305,18 @@ const server = http.createServer(async (req, res) => {
       });
     }
     if (pathname.startsWith('/api/validate/') && req.method === 'POST') {
-      const number = pathname.split('/')[3];
-      const result = await validateTicket(number);
-      if (!result.found) return jsonRes(res, 404, { valid:false, message:'Ingresso nao encontrado.' });
-      if (result.used) return jsonRes(res, 200, { valid:false, used:true, message:'Ingresso ja utilizado.', ticket:result.ticket });
-      return jsonRes(res, 200, { valid:true, message:'Ingresso valido! Entrada liberada.', ticket:result.ticket });
+      const parts = pathname.split('/');
+      const number = parts[3];
+      // Aceita formato numero:hash ou só número
+      const [numPart, hashPart] = number.split(':');
+      const result = await validateTicket(numPart);
+      if (!result.found) return jsonRes(res, 404, { valid:false, message:'Ingresso não encontrado.' });
+      if (result.used) return jsonRes(res, 200, { valid:false, used:true, message:'Ingresso já utilizado.', ticket:result.ticket });
+      // Se QR Code enviou hash, valida autenticidade
+      if (hashPart && result.ticket.qrHash && hashPart !== result.ticket.qrHash) {
+        return jsonRes(res, 200, { valid:false, message:'QR Code inválido ou falsificado.', ticket:result.ticket });
+      }
+      return jsonRes(res, 200, { valid:true, message:'Ingresso válido! Entrada liberada.', ticket:result.ticket });
     }
     // GET /api/pedidos
     if (pathname === '/api/pedidos' && req.method === 'GET') {
@@ -257,9 +332,20 @@ const server = http.createServer(async (req, res) => {
     // POST /api/pedidos
     if (pathname === '/api/pedidos' && req.method === 'POST') {
       return parseBody(req, async body => {
+        // 1. Validar CPF
+        const cpfLimpo = (body.cpf||'').replace(/[^\d]/g, '');
+        if (!validarCPF(cpfLimpo)) {
+          return jsonRes(res, 400, { error: 'CPF inválido. Verifique e tente novamente.' });
+        }
+        // 2. Verificar duplicidade
+        const dup = await cpfJaCadastrado(cpfLimpo, body.typeKey);
+        if (dup.duplicado) {
+          return jsonRes(res, 409, { error: `Este CPF já possui um ingresso ${body.type} cadastrado (Pedido #${dup.numero}).` });
+        }
         const pedido = {
           number: await getNextPedidoNumber(),
-          name: body.name, email: body.email, cpf: body.cpf,
+          name: body.name, email: body.email,
+          cpf: cpfLimpo.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4'),
           type: body.type, typeKey: body.typeKey, price: body.price,
           qty: body.qty || 1, status: 'pendente',
           createdAt: new Date().toISOString()
@@ -306,9 +392,14 @@ const server = http.createServer(async (req, res) => {
             const pedido = await getPedido(orderId);
             if (pedido && pedido.status === 'pendente') {
               const all = await getTickets();
+              const wNumber = getNextNumberSync(all);
+              const wCpf = (pedido.cpf||'').replace(/[^\d]/g,'');
+              const wHash = gerarQRHash(wNumber, wCpf, QR_SECRET);
               const ticket = {
                 id: require('crypto').randomUUID(),
-                number: getNextNumberSync(all),
+                number: wNumber,
+                qrHash: wHash,
+                qrCode: wNumber + ':' + wHash,
                 name: pedido.name, email: pedido.email, cpf: pedido.cpf,
                 type: pedido.type, typeKey: pedido.typeKey, price: pedido.price,
                 qty: pedido.qty, pagamento: pedido.pagamento || 'infinitepay',
