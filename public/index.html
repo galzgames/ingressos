@@ -492,6 +492,40 @@ body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;mi
 .result-flash{animation:flash-green 0.5s ease}
 @keyframes flash-green{0%,100%{background:transparent}50%{background:rgba(0,229,160,0.3)}}
 canvas#cam-canvas{display:none}
+
+/* ===== INFINITEPAY CHECKOUT ===== */
+.ip-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
+.ip-modal{background:#0d1f3c;border:1px solid rgba(0,200,150,0.3);border-radius:20px;width:100%;max-width:440px;overflow:hidden;box-shadow:0 0 60px rgba(0,200,150,0.1)}
+.ip-header{background:linear-gradient(135deg,#00c896,#00a07a);padding:18px 22px;display:flex;align-items:center;gap:12px}
+.ip-header-icon{font-size:28px}
+.ip-header h2{font-family:'Orbitron',monospace;font-size:15px;font-weight:700;color:#fff;margin:0 0 2px}
+.ip-header p{font-size:12px;color:rgba(255,255,255,0.85);margin:0}
+.ip-body{padding:22px}
+.ip-valor-box{text-align:center;background:rgba(0,200,150,0.08);border:1px solid rgba(0,200,150,0.2);border-radius:12px;padding:16px;margin-bottom:18px}
+.ip-valor-label{font-size:11px;color:rgba(0,200,150,0.8);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.ip-valor-num{font-family:'Orbitron',monospace;font-size:28px;font-weight:900;color:#00c896}
+.ip-metodos{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px}
+.ip-metodo{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:14px 8px;text-align:center;cursor:pointer;transition:all 0.2s}
+.ip-metodo:hover{border-color:var(--accent);background:rgba(255,215,0,0.08)}
+.ip-metodo.sel{border-color:var(--accent);background:rgba(255,215,0,0.12)}
+.ip-metodo-icon{font-size:24px;margin-bottom:6px}
+.ip-metodo-name{font-size:11px;font-weight:700;color:var(--text);font-family:'Orbitron',monospace;letter-spacing:0.3px}
+.ip-metodo-desc{font-size:10px;color:var(--muted);margin-top:2px}
+.ip-info{background:rgba(255,215,0,0.06);border:1px solid rgba(255,215,0,0.2);border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:rgba(240,244,255,0.85);line-height:1.7}
+.ip-info strong{color:var(--accent)}
+.btn-ip-pagar{width:100%;background:linear-gradient(135deg,#00c896,#00a07a);color:#fff;border:none;border-radius:12px;padding:15px;font-family:'Orbitron',monospace;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all 0.2s;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:10px}
+.btn-ip-pagar:hover{opacity:0.9;transform:translateY(-1px)}
+.btn-ip-pagar:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+.btn-ip-cancel{width:100%;background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s}
+.btn-ip-cancel:hover{border-color:#e94560;color:#e94560}
+.ip-aguard{text-align:center;padding:10px 0}
+.ip-aguard-anim{font-size:52px;animation:ip-pulse 1.5s infinite;margin-bottom:12px}
+@keyframes ip-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+.ip-aguard-title{font-family:'Orbitron',monospace;font-size:15px;font-weight:700;color:var(--accent);margin-bottom:8px}
+.ip-aguard-sub{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px}
+.ip-aguard-pedido{font-family:'Share Tech Mono',monospace;font-size:20px;color:#00c896;background:rgba(0,200,150,0.1);border:1px solid rgba(0,200,150,0.3);border-radius:10px;padding:10px 20px;display:inline-block;margin-bottom:16px;letter-spacing:2px}
+.btn-ip-verificar{width:100%;background:rgba(255,215,0,0.1);border:1px solid var(--accent);color:var(--accent);border-radius:10px;padding:12px;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all 0.2s;margin-bottom:8px}
+.btn-ip-verificar:hover{background:rgba(255,215,0,0.2)}
 </style>
 </head>
 <body>
@@ -587,7 +621,7 @@ canvas#cam-canvas{display:none}
       </div>
     </div>
     <button class="btn-generate" id="btn-gen" onclick="abrirPagamento()">
-      💚 PAGAR E GERAR INGRESSO
+      🛒 COMPRAR INGRESSO
     </button>
   </div>
 </div>
@@ -1041,6 +1075,11 @@ document.getElementById('f-cpf').addEventListener('input', function() {
 
 // ===== GERAR INGRESSO =====
 // ===== PAGAMENTO =====
+// ===== INFINITEPAY CHECKOUT =====
+const IP_TAG = 'de-glaucio-02m'; // InfiniteTag da conta
+let ipMetodoSel = 'pix';
+let ipPedidoAtual = null;
+
 function abrirPagamento() {
   const name = document.getElementById('f-name').value.trim();
   const email = document.getElementById('f-email').value.trim();
@@ -1057,37 +1096,144 @@ function abrirPagamento() {
   const total = valorUnit * qty;
   const totalFmt = 'R$ ' + total.toFixed(2).replace('.',',');
 
-  document.getElementById('pix-modal-sub').textContent = selTypeName + ' • ' + qty + 'x ' + selPrice;
-  document.getElementById('pix-total').textContent = totalFmt;
+  document.getElementById('ip-header-sub').textContent = selTypeName + ' • ' + qty + 'x ' + selPrice;
+  document.getElementById('ip-total').textContent = totalFmt;
 
-  // Carregar QR Code cadastrado pelo admin para este tipo
-  const qrCodes = config.qrCodes || {};
-  const qrTipo = qrCodes[selType] || {};
+  ipMetodoSel = 'pix';
+  selecionarMetodo('pix');
 
-  // Imagem
-  const imgEl = document.getElementById('pix-qr-img');
-  const canvasEl = document.getElementById('pix-qr-canvas');
-  const placeholder = document.getElementById('pix-qr-placeholder');
-  if (qrTipo.img) {
-    imgEl.src = qrTipo.img;
-    imgEl.style.display = 'block';
-    canvasEl.style.display = 'none';
-    placeholder.style.display = 'none';
-  } else {
-    imgEl.style.display = 'none';
-    placeholder.style.display = 'flex';
-    canvasEl.style.display = 'none';
+  document.getElementById('ip-screen-metodo').style.display = 'block';
+  document.getElementById('ip-screen-aguard').style.display = 'none';
+  document.getElementById('ip-modal-bg').style.display = 'flex';
+}
+
+function selecionarMetodo(met) {
+  ipMetodoSel = met;
+  ['pix','credito','debito'].forEach(m => {
+    document.getElementById('ip-met-' + m).classList.toggle('sel', m === met);
+  });
+  const nomes = { pix:'PIX', credito:'CARTÃO DE CRÉDITO', debito:'CARTÃO DE DÉBITO' };
+  document.getElementById('btn-ip-txt').textContent = 'PAGAR COM ' + nomes[met];
+}
+
+async function irParaCheckout() {
+  const name = document.getElementById('f-name').value.trim();
+  const email = document.getElementById('f-email').value.trim();
+  const cpf = document.getElementById('f-cpf').value.trim();
+
+  const p2 = config.precos || {};
+  const valorUnit = parseFloat(
+    selType === 'normal' ? (p2.normal?.valor || 60) :
+    selType === 'vip'    ? (p2.vip?.valor    || 150) :
+                           (p2.meia?.valor   || 30)
+  );
+  const total = valorUnit * qty;
+  const totalCentavos = Math.round(total * 100);
+
+  // Registra pedido no servidor
+  try {
+    const r = await fetch('/api/pedidos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name, email, cpf,
+        type: selTypeName, typeKey: selType,
+        price: 'R$ ' + total.toFixed(2).replace('.', ','),
+        qty, pagamento: ipMetodoSel
+      })
+    });
+    const pedido = await r.json();
+    ipPedidoAtual = pedido;
+    document.getElementById('ip-pedido-num').textContent = '#' + pedido.number;
+  } catch(e) {
+    showToast('Erro ao registrar pedido.');
+    return;
   }
 
-  // Código copia e cola
-  const codigo = qrTipo.codigo || '(QR Code não cadastrado pelo admin)';
-  document.getElementById('pix-copiaecola').textContent = codigo;
+  // Monta URL do checkout InfinitePay
+  const itemName = encodeURIComponent(selTypeName + ' - Retro Gamer Day');
+  const redirectUrl = encodeURIComponent(window.location.origin + '?pedido=' + ipPedidoAtual.number);
+  const metMap = { pix: 'pix', credito: 'credit_card', debito: 'debit_card' };
+  const paymentMethod = metMap[ipMetodoSel] || 'pix';
 
-  // Mostrar tela QR
-  document.getElementById('pix-screen-qr').style.display = 'block';
-  document.getElementById('pix-screen-aguardando').style.display = 'none';
-  document.getElementById('pix-modal-bg').style.display = 'flex';
+  const checkoutUrl = `https://checkout.infinitepay.io/${IP_TAG}?` +
+    `amount=${totalCentavos}` +
+    `&items=[{"name":"${itemName}","price":${totalCentavos},"quantity":1}]` +
+    `&payment_method=${paymentMethod}` +
+    `&redirect_url=${redirectUrl}` +
+    `&customer_name=${encodeURIComponent(name)}` +
+    `&customer_email=${encodeURIComponent(email)}`;
+
+  // Abre checkout em nova aba
+  window.open(checkoutUrl, '_blank');
+
+  // Mostra tela de aguardando
+  document.getElementById('ip-screen-metodo').style.display = 'none';
+  document.getElementById('ip-screen-aguard').style.display = 'block';
+  SFX.sendPix();
 }
+
+async function verificarPagamentoIP() {
+  if (!ipPedidoAtual) return;
+  try {
+    const r = await fetch('/api/pedidos/' + ipPedidoAtual.number);
+    const pedido = await r.json();
+    if (pedido.status === 'aprovado' && pedido.ticketNumber) {
+      const tickets = await fetch('/api/tickets').then(r => r.json());
+      const ticket = tickets.find(t => t.number === pedido.ticketNumber);
+      if (ticket) {
+        currentTicket = ticket;
+        renderTicket(ticket);
+        fecharIPModal();
+        showPage('meu-ingresso');
+        SFX.approved();
+        showToast('🎉 Pagamento confirmado! Ingresso gerado!');
+        return;
+      }
+    }
+    showToast('⏳ Pagamento ainda não confirmado. Tente novamente em instantes.');
+  } catch {
+    showToast('Erro ao verificar pagamento.');
+  }
+}
+
+function fecharIPModal() {
+  document.getElementById('ip-modal-bg').style.display = 'none';
+  SFX.closePix();
+}
+
+// Verifica se voltou do checkout (URL tem ?pedido=...)
+window.addEventListener('load', () => {
+  const params = new URLSearchParams(window.location.search);
+  const numPedido = params.get('pedido');
+  if (numPedido) {
+    history.replaceState({}, '', window.location.pathname);
+    setTimeout(async () => {
+      try {
+        const r = await fetch('/api/pedidos/' + numPedido);
+        const pedido = await r.json();
+        if (pedido.status === 'aprovado' && pedido.ticketNumber) {
+          const tickets = await fetch('/api/tickets').then(r => r.json());
+          const ticket = tickets.find(t => t.number === pedido.ticketNumber);
+          if (ticket) {
+            currentTicket = ticket;
+            renderTicket(ticket);
+            showPage('meu-ingresso');
+            SFX.approved();
+            showToast('🎉 Ingresso gerado com sucesso!');
+          }
+        } else {
+          // Ainda pendente — abre modal de verificação
+          ipPedidoAtual = pedido;
+          document.getElementById('ip-pedido-num').textContent = '#' + pedido.number;
+          document.getElementById('ip-screen-metodo').style.display = 'none';
+          document.getElementById('ip-screen-aguard').style.display = 'block';
+          document.getElementById('ip-modal-bg').style.display = 'flex';
+        }
+      } catch(e) { console.log('Erro ao verificar pedido de retorno'); }
+    }, 1500);
+  }
+});
 
 // pixTab removido - novo sistema de telas
 
@@ -2028,6 +2174,72 @@ window.showPage = function(id) {
   return result;
 };
 </script>
+
+
+<!-- INFINITEPAY CHECKOUT MODAL -->
+<div id="ip-modal-bg" class="ip-modal-bg" style="display:none">
+  <div class="ip-modal">
+    <div class="ip-header">
+      <div class="ip-header-icon">🛒</div>
+      <div>
+        <h2>Finalizar Compra</h2>
+        <p id="ip-header-sub">Ingresso Normal • R$ 60,00</p>
+      </div>
+    </div>
+    <div class="ip-body">
+
+      <!-- TELA 1: ESCOLHER MÉTODO -->
+      <div id="ip-screen-metodo">
+        <div class="ip-valor-box">
+          <div class="ip-valor-label">Total a pagar</div>
+          <div class="ip-valor-num" id="ip-total">R$ 60,00</div>
+        </div>
+
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Escolha como pagar</div>
+        <div class="ip-metodos">
+          <div class="ip-metodo sel" id="ip-met-pix" onclick="selecionarMetodo('pix')">
+            <div class="ip-metodo-icon">💚</div>
+            <div class="ip-metodo-name">PIX</div>
+            <div class="ip-metodo-desc">Instantâneo</div>
+          </div>
+          <div class="ip-metodo" id="ip-met-credito" onclick="selecionarMetodo('credito')">
+            <div class="ip-metodo-icon">💳</div>
+            <div class="ip-metodo-name">CRÉDITO</div>
+            <div class="ip-metodo-desc">Até 12x</div>
+          </div>
+          <div class="ip-metodo" id="ip-met-debito" onclick="selecionarMetodo('debito')">
+            <div class="ip-metodo-icon">💳</div>
+            <div class="ip-metodo-name">DÉBITO</div>
+            <div class="ip-metodo-desc">À vista</div>
+          </div>
+        </div>
+
+        <div class="ip-info">
+          <strong>🔒 Pagamento seguro</strong> pela InfinitePay.<br>
+          Após confirmar o pagamento, seu ingresso é gerado <strong>automaticamente</strong>.
+        </div>
+
+        <button class="btn-ip-pagar" id="btn-ip-pagar" onclick="irParaCheckout()">
+          <span>🚀</span> <span id="btn-ip-txt">PAGAR COM PIX</span>
+        </button>
+        <button class="btn-ip-cancel" onclick="fecharIPModal()">Cancelar</button>
+      </div>
+
+      <!-- TELA 2: AGUARDANDO PAGAMENTO -->
+      <div id="ip-screen-aguard" style="display:none">
+        <div class="ip-aguard">
+          <div class="ip-aguard-anim">⏳</div>
+          <div class="ip-aguard-title">Aguardando Pagamento</div>
+          <div class="ip-aguard-sub">Você foi redirecionado para o checkout da InfinitePay. Após pagar, clique em "Verificar Pagamento".</div>
+          <div class="ip-aguard-pedido" id="ip-pedido-num">#P10001</div>
+          <button class="btn-ip-verificar" onclick="verificarPagamentoIP()">🔍 VERIFICAR PAGAMENTO</button>
+          <button class="btn-ip-cancel" onclick="fecharIPModal()">Fechar</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
