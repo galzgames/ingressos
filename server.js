@@ -294,6 +294,39 @@ const server = http.createServer(async (req, res) => {
       return jsonRes(res, 200, { ok: true });
     }
 
+    // POST /api/webhook/infinitepay — confirmação automática de pagamento
+    if (pathname === '/api/webhook/infinitepay' && req.method === 'POST') {
+      return parseBody(req, async body => {
+        try {
+          // InfinitePay envia status do pagamento
+          const status = body.status || body.payment_status || '';
+          const orderId = body.order_id || body.reference || body.metadata?.pedido || '';
+          
+          if ((status === 'approved' || status === 'paid' || status === 'succeeded') && orderId) {
+            const pedido = await getPedido(orderId);
+            if (pedido && pedido.status === 'pendente') {
+              const all = await getTickets();
+              const ticket = {
+                id: require('crypto').randomUUID(),
+                number: getNextNumberSync(all),
+                name: pedido.name, email: pedido.email, cpf: pedido.cpf,
+                type: pedido.type, typeKey: pedido.typeKey, price: pedido.price,
+                qty: pedido.qty, pagamento: pedido.pagamento || 'infinitepay',
+                used: false, createdAt: new Date().toISOString()
+              };
+              await addTicket(ticket);
+              await updatePedido(orderId, { status: 'aprovado', ticketNumber: ticket.number, approvedAt: new Date().toISOString() });
+              console.log('Pagamento aprovado via webhook:', orderId, '-> Ingresso:', ticket.number);
+            }
+          }
+          jsonRes(res, 200, { ok: true });
+        } catch(e) {
+          console.error('Webhook error:', e.message);
+          jsonRes(res, 200, { ok: true });
+        }
+      });
+    }
+
     if (pathname === '/api/reset' && req.method === 'POST') {
       return parseBody(req, async body => {
         if (body.senha !== ADMIN_SENHA) return jsonRes(res, 401, { ok:false, error:'Senha incorreta.' });
