@@ -862,7 +862,9 @@ canvas#cam-canvas{display:none}
     </div>
 
     <div class="admin-card section-full">
-      <h3>⏳ Pedidos Aguardando Confirmação <span class="badge-pendente" id="badge-pendentes">0</span></h3>
+      <h3>⏳ Pedidos Aguardando Confirmação <span class="badge-pendente" id="badge-pendentes">0</span>
+        <button onclick="loadPendentes()" style="background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:10px;padding:3px 8px;cursor:pointer;margin-left:8px;font-family:'Rajdhani',sans-serif" title="Atualizar lista">🔄</button>
+      </h3>
       <div id="lista-pendentes">
         <div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Nenhum pedido pendente</div>
       </div>
@@ -1683,14 +1685,23 @@ async function loadPendentes() {
       lista.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Nenhum pedido pendente</div>';
       return;
     }
+    // Formata data
+    const fmtDate = (d) => {
+      if (!d) return '';
+      const dt = new Date(d);
+      return dt.toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    };
     lista.innerHTML = pendentes.map(p => `
-      <div class="pendente-card">
+      <div class="pendente-card" id="pend-${p.number}">
         <div class="pendente-header">
           <span class="pendente-num">#${p.number}</span>
           <span class="pendente-tipo">${p.type}</span>
         </div>
-        <div class="pendente-nome">${p.name} • ${p.email}</div>
-        <div class="pendente-valor">${p.price} • Qtd: ${p.qty}</div>
+        <div class="pendente-nome">👤 ${p.name}</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:2px">📧 ${p.email}</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">🪪 ${p.cpf || '—'}</div>
+        <div class="pendente-valor">💰 ${p.price} • Qtd: ${p.qty} • ${p.pagamento || 'pix'}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">🕐 ${fmtDate(p.createdAt)}</div>
         <div class="pendente-btns">
           <button class="btn-aprovar" onclick="aprovarPedido('${p.number}')">✅ APROVAR</button>
           <button class="btn-rejeitar" onclick="rejeitarPedido('${p.number}')">❌ REJEITAR</button>
@@ -1701,20 +1712,46 @@ async function loadPendentes() {
 }
 
 async function aprovarPedido(number) {
+  const btn = document.querySelector(`button[onclick="aprovarPedido('${number}')"]`);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Aprovando...'; }
   try {
-    await fetch(API + '/api/pedidos/' + number + '/aprovar', { method:'POST' });
-    showToast('Pedido #' + number + ' aprovado! Ingresso gerado.');
-    loadPendentes();
-    loadTickets();
-  } catch { showToast('Erro ao aprovar.'); }
+    const r = await fetch(API + '/api/pedidos/' + number + '/aprovar', { method:'POST' });
+    const data = await r.json();
+    if (!r.ok || data.error) {
+      showToast('⚠️ ' + (data.error || 'Erro ao aprovar.'));
+      SFX.error();
+    } else {
+      SFX.approve();
+      showToast('✅ Pedido #' + number + ' aprovado! Ingresso #' + data.ticket?.number + ' gerado.');
+      await loadPendentes();
+      await loadTickets();
+      updateAdminStats();
+    }
+  } catch(e) {
+    showToast('❌ Erro de conexão ao aprovar.');
+    SFX.error();
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '✅ APROVAR'; }
+  }
 }
 
 async function rejeitarPedido(number) {
+  if (!confirm('Rejeitar o pedido #' + number + '? O cliente não receberá ingresso.')) return;
+  const btn = document.querySelector(`button[onclick="rejeitarPedido('${number}')"]`);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Rejeitando...'; }
   try {
-    await fetch(API + '/api/pedidos/' + number + '/rejeitar', { method:'POST' });
-    showToast('Pedido #' + number + ' rejeitado.');
-    loadPendentes();
-  } catch { showToast('Erro ao rejeitar.'); }
+    const r = await fetch(API + '/api/pedidos/' + number + '/rejeitar', { method:'POST' });
+    if (r.ok) {
+      SFX.rejected();
+      showToast('❌ Pedido #' + number + ' rejeitado.');
+      await loadPendentes();
+    } else {
+      showToast('Erro ao rejeitar pedido.');
+    }
+  } catch {
+    showToast('❌ Erro de conexão ao rejeitar.');
+    SFX.error();
+  }
 }
 
 async function salvarPagamento() { salvarQRCodes(); }
