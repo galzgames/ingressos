@@ -1150,19 +1150,16 @@ async function irParaCheckout() {
     return;
   }
 
-  // Monta URL do checkout InfinitePay
-  const itemName = encodeURIComponent(selTypeName + ' - Retro Gamer Day');
-  const redirectUrl = encodeURIComponent(window.location.origin + '?pedido=' + ipPedidoAtual.number);
-  const metMap = { pix: 'pix', credito: 'credit_card', debito: 'debit_card' };
-  const paymentMethod = metMap[ipMetodoSel] || 'pix';
+  // Links fixos de checkout InfinitePay por tipo
+  const IP_LINKS = {
+    normal:  'https://checkout.infinitepay.io/de-glaucio-02m/1sjgUSoqjp',
+    vip:     'https://checkout.infinitepay.io/de-glaucio-02m/1sjgUSoqjp',
+    meia:    'https://checkout.infinitepay.io/de-glaucio-02m/1sjgUSoqjp'
+  };
 
-  const checkoutUrl = `https://checkout.infinitepay.io/${IP_TAG}?` +
-    `amount=${totalCentavos}` +
-    `&items=[{"name":"${itemName}","price":${totalCentavos},"quantity":1}]` +
-    `&payment_method=${paymentMethod}` +
-    `&redirect_url=${redirectUrl}` +
-    `&customer_name=${encodeURIComponent(name)}` +
-    `&customer_email=${encodeURIComponent(email)}`;
+  // Adiciona referência do pedido na URL de retorno
+  const baseLink = IP_LINKS[selType] || IP_LINKS.normal;
+  const checkoutUrl = baseLink + '?ref=' + ipPedidoAtual.number;
 
   // Abre checkout em nova aba
   window.open(checkoutUrl, '_blank');
