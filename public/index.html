@@ -1071,7 +1071,27 @@ document.getElementById('f-cpf').addEventListener('input', function() {
   let v = this.value.replace(/\D/g,'').slice(0,11);
   v = v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
   this.value = v;
+  // Validação visual em tempo real
+  const cpfLimpo = v.replace(/\D/g,'');
+  if (cpfLimpo.length === 11) {
+    const valido = validarCPFfrontend(cpfLimpo);
+    this.style.borderColor = valido ? 'var(--success)' : '#e94560';
+  } else {
+    this.style.borderColor = '';
+  }
 });
+
+function validarCPFfrontend(cpf) {
+  if (/^(\d)\1{10}$/.test(cpf)) return false;
+  let s = 0;
+  for (let i = 0; i < 9; i++) s += parseInt(cpf[i]) * (10 - i);
+  let r = 11 - (s % 11); if (r >= 10) r = 0;
+  if (r !== parseInt(cpf[9])) return false;
+  s = 0;
+  for (let i = 0; i < 10; i++) s += parseInt(cpf[i]) * (11 - i);
+  r = 11 - (s % 11); if (r >= 10) r = 0;
+  return r === parseInt(cpf[10]);
+}
 
 // ===== GERAR INGRESSO =====
 // ===== PAGAMENTO =====
@@ -1130,6 +1150,17 @@ async function irParaCheckout() {
   const total = valorUnit * qty;
   const totalCentavos = Math.round(total * 100);
 
+  // Valida CPF antes de ir para checkout
+  const cpfLimpo = cpf.replace(/\D/g, '');
+  if (!validarCPFfrontend(cpfLimpo)) {
+    fecharIPModal();
+    showToast('❌ CPF inválido! Verifique o número.');
+    document.getElementById('f-cpf').style.borderColor = '#e94560';
+    document.getElementById('f-cpf').focus();
+    SFX.error();
+    return;
+  }
+
   // Registra pedido no servidor
   try {
     const r = await fetch('/api/pedidos', {
@@ -1143,6 +1174,12 @@ async function irParaCheckout() {
       })
     });
     const pedido = await r.json();
+    if (!r.ok) {
+      fecharIPModal();
+      showToast('❌ ' + (pedido.error || 'Erro ao registrar pedido.'));
+      SFX.error();
+      return;
+    }
     ipPedidoAtual = pedido;
     document.getElementById('ip-pedido-num').textContent = '#' + pedido.number;
   } catch(e) {
@@ -1424,7 +1461,9 @@ function renderTicket(t) {
   document.getElementById('tk-local').textContent = config.eventLocal || '';
   document.getElementById('tk-price').textContent = t.price;
   document.getElementById('tk-num').textContent = '#' + t.number;
-  drawQR(t.number, 'qr-canvas');
+  // Usa qrCode seguro (numero:hash) se disponível
+  const qrContent = t.qrCode || t.number;
+  drawQR(qrContent, 'qr-canvas');
 }
 
 // ===== QR CODE =====
