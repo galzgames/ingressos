@@ -359,18 +359,25 @@ const server = http.createServer(async (req, res) => {
       const number = pathname.split('/')[3];
       const pedido = await getPedido(number);
       if (!pedido) return jsonRes(res, 404, { error: 'Pedido não encontrado.' });
-      // Gerar ingresso
+      if (pedido.status === 'aprovado') return jsonRes(res, 200, { ok: false, error: 'Pedido já aprovado. Ingresso #' + pedido.ticketNumber });
+      // Gerar ingresso com QR seguro
       const all = await getTickets();
+      const tNumber = getNextNumberSync(all);
+      const tCpf = (pedido.cpf||'').replace(/[^\d]/g,'');
+      const tHash = gerarQRHash(tNumber, tCpf, QR_SECRET);
       const ticket = {
         id: require('crypto').randomUUID(),
-        number: getNextNumberSync(all),
+        number: tNumber,
+        qrHash: tHash,
+        qrCode: tNumber + ':' + tHash,
         name: pedido.name, email: pedido.email, cpf: pedido.cpf,
         type: pedido.type, typeKey: pedido.typeKey, price: pedido.price,
-        qty: pedido.qty, pagamento: 'pix',
+        qty: pedido.qty, pagamento: pedido.pagamento || 'manual',
         used: false, createdAt: new Date().toISOString()
       };
       await addTicket(ticket);
       await updatePedido(number, { status: 'aprovado', ticketNumber: ticket.number, approvedAt: new Date().toISOString() });
+      console.log('Pedido aprovado manualmente:', number, '-> Ingresso:', ticket.number);
       return jsonRes(res, 200, { ok: true, ticket });
     }
     // POST /api/pedidos/:number/rejeitar
