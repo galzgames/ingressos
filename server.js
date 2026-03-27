@@ -318,9 +318,14 @@ const server = http.createServer(async (req, res) => {
       }
       return jsonRes(res, 200, { valid:true, message:'Ingresso válido! Entrada liberada.', ticket:result.ticket });
     }
-    // GET /api/pedidos
+    // GET /api/pedidos?status=pendente|aprovado|rejeitado|all
     if (pathname === '/api/pedidos' && req.method === 'GET') {
-      return jsonRes(res, 200, await getPedidos());
+      const statusFilter = parsed.query.status || 'pendente';
+      const todos = await getPedidos();
+      const filtrados = statusFilter === 'all' 
+        ? todos 
+        : todos.filter(p => p.status === statusFilter);
+      return jsonRes(res, 200, filtrados);
     }
     // GET /api/pedidos/:number
     if (pathname.startsWith('/api/pedidos/') && !pathname.includes('/aprovar') && !pathname.includes('/rejeitar') && req.method === 'GET') {
