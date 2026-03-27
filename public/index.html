@@ -1712,6 +1712,7 @@ async function loadPendentes() {
 }
 
 async function aprovarPedido(number) {
+  const card = document.getElementById('pend-' + number);
   const btn = document.querySelector(`button[onclick="aprovarPedido('${number}')"]`);
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Aprovando...'; }
   try {
@@ -1720,23 +1721,32 @@ async function aprovarPedido(number) {
     if (!r.ok || data.error) {
       showToast('⚠️ ' + (data.error || 'Erro ao aprovar.'));
       SFX.error();
+      if (btn) { btn.disabled = false; btn.textContent = '✅ APROVAR'; }
     } else {
       SFX.approve();
       showToast('✅ Pedido #' + number + ' aprovado! Ingresso #' + data.ticket?.number + ' gerado.');
-      await loadPendentes();
+      // Remove o card imediatamente
+      if (card) {
+        card.style.transition = 'all 0.3s ease';
+        card.style.opacity = '0';
+        card.style.transform = 'translateX(20px)';
+        setTimeout(() => { card.remove(); updateBadgeCount(); }, 300);
+      } else {
+        await loadPendentes();
+      }
       await loadTickets();
       updateAdminStats();
     }
   } catch(e) {
     showToast('❌ Erro de conexão ao aprovar.');
     SFX.error();
-  } finally {
     if (btn) { btn.disabled = false; btn.textContent = '✅ APROVAR'; }
   }
 }
 
 async function rejeitarPedido(number) {
   if (!confirm('Rejeitar o pedido #' + number + '? O cliente não receberá ingresso.')) return;
+  const card = document.getElementById('pend-' + number);
   const btn = document.querySelector(`button[onclick="rejeitarPedido('${number}')"]`);
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Rejeitando...'; }
   try {
@@ -1744,13 +1754,33 @@ async function rejeitarPedido(number) {
     if (r.ok) {
       SFX.rejected();
       showToast('❌ Pedido #' + number + ' rejeitado.');
-      await loadPendentes();
+      // Remove o card imediatamente da tela
+      if (card) {
+        card.style.transition = 'all 0.3s ease';
+        card.style.opacity = '0';
+        card.style.transform = 'translateX(-20px)';
+        setTimeout(() => { card.remove(); updateBadgeCount(); }, 300);
+      } else {
+        await loadPendentes();
+      }
     } else {
       showToast('Erro ao rejeitar pedido.');
+      if (btn) { btn.disabled = false; btn.textContent = '❌ REJEITAR'; }
     }
   } catch {
     showToast('❌ Erro de conexão ao rejeitar.');
     SFX.error();
+    if (btn) { btn.disabled = false; btn.textContent = '❌ REJEITAR'; }
+  }
+}
+
+function updateBadgeCount() {
+  const cards = document.querySelectorAll('.pendente-card');
+  const badge = document.getElementById('badge-pendentes');
+  if (badge) badge.textContent = cards.length;
+  if (cards.length === 0) {
+    const lista = document.getElementById('lista-pendentes');
+    if (lista) lista.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Nenhum pedido pendente</div>';
   }
 }
 
