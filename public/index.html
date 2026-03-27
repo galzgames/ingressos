@@ -1212,7 +1212,7 @@ async function irParaCheckout() {
 async function verificarPagamentoIP() {
   if (!ipPedidoAtual) return;
   try {
-    const r = await fetch('/api/pedidos/' + ipPedidoAtual.number);
+    const r = await fetch('/api/pedidos/' + ipPedidoAtual.number + '?status=all');
     const pedido = await r.json();
     if (pedido.status === 'aprovado' && pedido.ticketNumber) {
       const tickets = await fetch('/api/tickets').then(r => r.json());
@@ -1674,7 +1674,7 @@ async function salvarQRCodes() {
 
 async function loadPendentes() {
   try {
-    const r = await fetch(API + '/api/pedidos');
+    const r = await fetch(API + '/api/pedidos?status=pendente');
     const pedidos = await r.json();
     const pendentes = pedidos.filter(p => p.status === 'pendente');
     const badge = document.getElementById('badge-pendentes');
