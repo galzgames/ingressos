@@ -281,12 +281,7 @@ const server = http.createServer(async (req, res) => {
         if (!validarCPF(cpfLimpo)) {
           return jsonRes(res, 400, { error: 'CPF inválido. Verifique e tente novamente.' });
         }
-        // 2. Verificar duplicidade de CPF por tipo
-        const dup = await cpfJaCadastrado(cpfLimpo, body.typeKey);
-        if (dup.duplicado) {
-          return jsonRes(res, 409, { error: `Este CPF já possui um ingresso ${body.type} cadastrado (Pedido #${dup.numero}).` });
-        }
-        // 3. Gerar ingresso com QR Code seguro
+        // 2. Gerar ingresso com QR Code seguro
         const number = await getNextNumber();
         const qrHash = gerarQRHash(number, cpfLimpo, QR_SECRET);
         const ticket = {
@@ -341,11 +336,6 @@ const server = http.createServer(async (req, res) => {
         const cpfLimpo = (body.cpf||'').replace(/[^\d]/g, '');
         if (!validarCPF(cpfLimpo)) {
           return jsonRes(res, 400, { error: 'CPF inválido. Verifique e tente novamente.' });
-        }
-        // 2. Verificar duplicidade
-        const dup = await cpfJaCadastrado(cpfLimpo, body.typeKey);
-        if (dup.duplicado) {
-          return jsonRes(res, 409, { error: `Este CPF já possui um ingresso ${body.type} cadastrado (Pedido #${dup.numero}).` });
         }
         const pedido = {
           number: await getNextPedidoNumber(),
