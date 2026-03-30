@@ -567,7 +567,7 @@ canvas#cam-canvas{display:none}
 <div class="menu-overlay" id="menu-overlay" onclick="fecharMenu()"></div>
 
 <div class="topbar">
-  <div class="logo" id="logo-btn" onclick="toggleMenu()">
+  <div class="logo" id="logo-btn" onclick="toggleMenu(event)">
     <div style="position:relative">
       <img src="/images/logo.png" alt="GalzGames Logo" />
       <div class="logo-hint"></div>
@@ -578,7 +578,7 @@ canvas#cam-canvas{display:none}
     </div>
 
     <!-- MENU DROPDOWN -->
-    <div class="logo-menu" id="logo-menu">
+    <div class="logo-menu" id="logo-menu" onclick="event.stopPropagation()">
       <div class="menu-header">
         <div class="menu-header-name">🎮 GalzGames</div>
         <div class="menu-header-sub">Retro Gamer Day</div>
@@ -607,7 +607,7 @@ canvas#cam-canvas{display:none}
 
   <!-- INFO EVENTO NO TOPO -->
   <div class="topbar-right">
-    <div class="event-pill" onclick="toggleMenu()">
+    <div class="event-pill" onclick="toggleMenu(event)">
       <div class="event-dot"></div>
       <span id="topbar-event-name">Retro Gamer Day</span>
     </div>
@@ -1055,7 +1055,8 @@ const ADMIN_SENHA = 'Suenia81@';
 let currentPageId = 'home';
 
 // ===== MENU LOGO =====
-function toggleMenu() {
+function toggleMenu(event) {
+  if (event) event.stopPropagation();
   const menu = document.getElementById('logo-menu');
   const overlay = document.getElementById('menu-overlay');
   const isOpen = menu.classList.contains('open');
@@ -1075,8 +1076,9 @@ function fecharMenu() {
 
 function navTo(event, id) {
   event.stopPropagation();
+  event.preventDefault();
   fecharMenu();
-  showPage(id);
+  setTimeout(() => showPage(id), 50);
 }
 
 function syncMenu(id) {
