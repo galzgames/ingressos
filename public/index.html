@@ -560,6 +560,25 @@ canvas#cam-canvas{display:none}
 .ip-aguard-pedido{font-family:'Share Tech Mono',monospace;font-size:20px;color:#00c896;background:rgba(0,200,150,0.1);border:1px solid rgba(0,200,150,0.3);border-radius:10px;padding:10px 20px;display:inline-block;margin-bottom:16px;letter-spacing:2px}
 .btn-ip-verificar{width:100%;background:rgba(255,215,0,0.1);border:1px solid var(--accent);color:var(--accent);border-radius:10px;padding:12px;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all 0.2s;margin-bottom:8px}
 .btn-ip-verificar:hover{background:rgba(255,215,0,0.2)}
+
+/* ===== BUSCA DE INGRESSO ===== */
+.busca-box{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:16px;padding:22px;margin-bottom:20px}
+.busca-title{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.busca-tabs{display:flex;gap:6px;margin-bottom:14px}
+.busca-tab{flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;text-transform:uppercase}
+.busca-tab.active{background:rgba(255,215,0,0.15);border-color:var(--accent);color:var(--accent)}
+.busca-input{background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:10px;padding:12px 16px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:16px;width:100%;outline:none;transition:border 0.2s;letter-spacing:2px;margin-bottom:10px}
+.busca-input:focus{border-color:var(--accent)}
+.btn-buscar{width:100%;background:linear-gradient(135deg,var(--accent),#ffb300);color:#000;border:none;border-radius:10px;padding:12px;font-family:'Orbitron',monospace;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all 0.2s}
+.btn-buscar:hover{opacity:0.9;transform:translateY(-1px)}
+.busca-resultados{margin-top:14px}
+.busca-resultado-card{background:rgba(0,200,150,0.06);border:1px solid rgba(0,200,150,0.2);border-radius:10px;padding:14px;margin-bottom:8px;cursor:pointer;transition:all 0.2s}
+.busca-resultado-card:hover{background:rgba(0,200,150,0.12);border-color:var(--success)}
+.br-num{font-family:'Share Tech Mono',monospace;font-size:16px;font-weight:700;color:var(--success)}
+.br-nome{font-size:14px;color:var(--text);font-weight:600;margin:4px 0 2px}
+.br-info{font-size:12px;color:var(--muted)}
+.br-status-usado{color:#e94560;font-weight:700}
+.br-status-valido{color:var(--success);font-weight:700}
 </style>
 </head>
 <body>
@@ -696,6 +715,21 @@ canvas#cam-canvas{display:none}
 
 <!-- MEU INGRESSO -->
 <div id="page-meu-ingresso" class="page">
+
+  <!-- BUSCA DE INGRESSO -->
+  <div class="busca-box" style="max-width:440px;margin:0 auto 20px">
+    <div class="busca-title">🔍 Buscar Ingresso</div>
+    <div class="busca-tabs">
+      <button class="busca-tab active" id="btab-num" onclick="setBuscaTab('num')">Nº do Ingresso</button>
+      <button class="busca-tab" id="btab-cpf" onclick="setBuscaTab('cpf')">CPF</button>
+      <button class="busca-tab" id="btab-email" onclick="setBuscaTab('email')">E-mail</button>
+    </div>
+    <input class="busca-input" id="busca-input" type="text" placeholder="Digite aqui..."
+      onkeydown="if(event.key==='Enter') buscarIngresso()" />
+    <button class="btn-buscar" onclick="buscarIngresso()">🔍 BUSCAR MEU INGRESSO</button>
+    <div class="busca-resultados" id="busca-resultados"></div>
+  </div>
+
   <div class="ticket-wrap">
     <div id="no-ticket" class="no-ticket">
       <div class="no-ticket-icon">🎮</div>
@@ -1893,6 +1927,87 @@ function updateBadgeCount() {
 
 async function salvarPagamento() { salvarQRCodes(); }
 async function salvarMetodos() { salvarQRCodes(); }
+
+
+// ===== BUSCA DE INGRESSO =====
+let buscaTabAtual = 'num';
+
+function setBuscaTab(tab) {
+  buscaTabAtual = tab;
+  ['num','cpf','email'].forEach(t => {
+    document.getElementById('btab-' + t).classList.toggle('active', t === tab);
+  });
+  const input = document.getElementById('busca-input');
+  const placeholders = { num: 'Ex: 100001', cpf: 'Ex: 123.456.789-00', email: 'seu@email.com' };
+  input.placeholder = placeholders[tab];
+  input.value = '';
+  document.getElementById('busca-resultados').innerHTML = '';
+  input.focus();
+}
+
+async function buscarIngresso() {
+  const val = document.getElementById('busca-input').value.trim();
+  if (!val) { showToast('Digite um valor para buscar!'); return; }
+  
+  const res = document.getElementById('busca-resultados');
+  res.innerHTML = '<div style="text-align:center;padding:12px;color:var(--muted);font-size:13px">🔍 Buscando...</div>';
+  
+  try {
+    let url = '/api/tickets/buscar?';
+    if (buscaTabAtual === 'num') url += 'number=' + encodeURIComponent(val);
+    else if (buscaTabAtual === 'cpf') url += 'cpf=' + encodeURIComponent(val.replace(/\D/g,''));
+    else url += 'email=' + encodeURIComponent(val);
+    
+    const r = await fetch(url);
+    const tickets = await r.json();
+    
+    if (!tickets.length) {
+      res.innerHTML = '<div style="text-align:center;padding:16px;color:#e94560;font-size:13px">❌ Nenhum ingresso encontrado</div>';
+      SFX.error();
+      return;
+    }
+    
+    SFX.validateOk();
+    res.innerHTML = tickets.map(t => `
+      <div class="busca-resultado-card" onclick="verIngresso('${t.number}')">
+        <div class="br-num">#${t.number}</div>
+        <div class="br-nome">${t.name}</div>
+        <div class="br-info">🎟 ${t.type} • 💰 ${t.price}</div>
+        <div class="br-info">📧 ${t.email}</div>
+        <div class="br-info" style="margin-top:4px">
+          ${t.used 
+            ? '<span class="br-status-usado">⚠️ Ingresso já utilizado</span>' 
+            : '<span class="br-status-valido">✅ Válido — Clique para ver</span>'}
+        </div>
+      </div>
+    `).join('');
+    
+    // Se só tem um resultado, mostra direto
+    if (tickets.length === 1 && !tickets[0].used) {
+      setTimeout(() => verIngresso(tickets[0].number), 800);
+    }
+  } catch {
+    res.innerHTML = '<div style="text-align:center;padding:12px;color:#e94560;font-size:13px">❌ Erro ao buscar. Tente novamente.</div>';
+    SFX.error();
+  }
+}
+
+async function verIngresso(number) {
+  try {
+    const r = await fetch('/api/tickets');
+    const tickets = await r.json();
+    const ticket = tickets.find(t => t.number === number);
+    if (ticket) {
+      currentTicket = ticket;
+      renderTicket(ticket);
+      document.getElementById('busca-resultados').innerHTML = '';
+      document.getElementById('busca-input').value = '';
+      // Scroll para o ingresso
+      document.getElementById('ticket-display').scrollIntoView({behavior:'smooth'});
+      SFX.approved();
+    }
+  } catch { showToast('Erro ao carregar ingresso.'); }
+}
 
 function showToast(msg) {
   const t = document.getElementById('toast');
