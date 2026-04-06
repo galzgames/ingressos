@@ -274,6 +274,21 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/api/tickets' && req.method === 'GET') {
       return jsonRes(res, 200, await getTickets());
     }
+    // GET /api/tickets/buscar?cpf=xxx ou ?number=xxx ou ?email=xxx
+    if (pathname === '/api/tickets/buscar' && req.method === 'GET') {
+      const { cpf, number, email } = parsed.query;
+      const todos = await getTickets();
+      let resultado = [];
+      if (number) {
+        resultado = todos.filter(t => t.number === number.trim());
+      } else if (cpf) {
+        const cpfLimpo = cpf.replace(/[^\d]/g, '');
+        resultado = todos.filter(t => t.cpf && t.cpf.replace(/[^\d]/g, '') === cpfLimpo);
+      } else if (email) {
+        resultado = todos.filter(t => t.email && t.email.toLowerCase() === email.toLowerCase().trim());
+      }
+      return jsonRes(res, 200, resultado);
+    }
     if (pathname === '/api/tickets' && req.method === 'POST') {
       return parseBody(req, async body => {
         // 1. Validar CPF
