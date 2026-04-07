@@ -973,8 +973,10 @@ canvas#cam-canvas{display:none}
     </div>
 
     <div class="admin-card">
-      <h3>🎟 Ingressos Emitidos</h3>
-      <div class="ticket-list-scroll" id="ticket-list">
+      <h3>🎟 Ingressos Emitidos <span id="badge-tickets" style="background:rgba(255,215,0,0.2);color:var(--accent);font-size:11px;padding:2px 8px;border-radius:20px;font-family:'Share Tech Mono',monospace;margin-left:6px">0</span>
+        <button onclick="loadTickets();updateAdminStats();" style="background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:10px;padding:3px 8px;cursor:pointer;margin-left:6px;font-family:'Rajdhani',sans-serif">🔄</button>
+      </h3>
+      <div class="ticket-list-scroll" id="ticket-list" style="max-height:320px">
         <div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Nenhum ingresso</div>
       </div>
     </div>
@@ -1763,19 +1765,39 @@ function updateAdminStats() {
   document.getElementById('st-normal').textContent = allTickets.filter(t=>t.typeKey==='normal').length;
   document.getElementById('st-vip').textContent = allTickets.filter(t=>t.typeKey==='vip').length;
   document.getElementById('st-meia').textContent = allTickets.filter(t=>t.typeKey==='meia').length;
+
+  // Badge total
+  const badge = document.getElementById('badge-tickets');
+  if (badge) badge.textContent = allTickets.length;
+
   const list = document.getElementById('ticket-list');
+  if (!list) return;
   if (!allTickets.length) {
-    list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Nenhum ingresso</div>';
+    list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Nenhum ingresso emitido ainda</div>';
     return;
   }
-  list.innerHTML = [...allTickets].reverse().map(t =>
-    `<div class="tl-row">
-      <span class="tl-num">#${t.number}</span>
-      <span class="tl-name">${t.name}</span>
-      <span class="tl-type">${t.type}</span>
-      <span class="badge ${t.used?'used':'valid'}">${t.used?'Usado':'Válido'}</span>
-    </div>`
-  ).join('');
+
+  const fmtDate = (d) => {
+    if (!d) return '';
+    return new Date(d).toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+  };
+
+  list.innerHTML = [...allTickets].reverse().map(t => `
+    <div class="tl-row" style="flex-direction:column;align-items:flex-start;padding:10px 12px;gap:4px">
+      <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
+        <span class="tl-num">#${t.number}</span>
+        <span class="badge ${t.used?'used':'valid'}">${t.used ? '✅ Usado' : '🟢 Válido'}</span>
+      </div>
+      <div style="font-size:13px;color:var(--text);font-weight:600">${t.name}</div>
+      <div style="font-size:11px;color:var(--muted)">📧 ${t.email}</div>
+      <div style="font-size:11px;color:var(--muted)">🪪 ${t.cpf || '—'}</div>
+      <div style="display:flex;justify-content:space-between;width:100%;margin-top:2px">
+        <span style="font-size:11px;color:var(--success)">🎟 ${t.type} • ${t.price}</span>
+        <span style="font-size:10px;color:var(--muted)">${fmtDate(t.createdAt)}</span>
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.3)">Pagamento: ${t.pagamento || 'pix'} • QR: ${t.number}</div>
+    </div>
+  `).join('');
 }
 
 // ===== UTILS =====
@@ -1977,46 +1999,60 @@ function setBuscaTab(tab) {
 async function buscarIngresso() {
   const val = document.getElementById('busca-input').value.trim();
   if (!val) { showToast('Digite um valor para buscar!'); return; }
-  
+
   const res = document.getElementById('busca-resultados');
   res.innerHTML = '<div style="text-align:center;padding:12px;color:var(--muted);font-size:13px">🔍 Buscando...</div>';
-  
+
   try {
-    let url = '/api/tickets/buscar?';
-    if (buscaTabAtual === 'num') url += 'number=' + encodeURIComponent(val);
-    else if (buscaTabAtual === 'cpf') url += 'cpf=' + encodeURIComponent(val.replace(/\D/g,''));
-    else url += 'email=' + encodeURIComponent(val);
-    
-    const r = await fetch(url);
-    const tickets = await r.json();
-    
+    // Busca todos os tickets e filtra localmente (mais confiavel)
+    const r = await fetch('/api/tickets');
+    if (!r.ok) throw new Error('Erro ' + r.status);
+    const todos = await r.json();
+
+    let tickets = [];
+    if (buscaTabAtual === 'num') {
+      const num = val.replace('#','').trim();
+      tickets = todos.filter(t => t.number === num);
+    } else if (buscaTabAtual === 'cpf') {
+      const cpfLimpo = val.replace(/\D/g,'');
+      tickets = todos.filter(t => t.cpf && t.cpf.replace(/\D/g,'') === cpfLimpo);
+    } else {
+      tickets = todos.filter(t => t.email && t.email.toLowerCase() === val.toLowerCase());
+    }
+
     if (!tickets.length) {
-      res.innerHTML = '<div style="text-align:center;padding:16px;color:#e94560;font-size:13px">❌ Nenhum ingresso encontrado</div>';
+      res.innerHTML = '<div style="text-align:center;padding:20px;color:#e94560;font-size:14px">❌ Nenhum ingresso encontrado<br><span style="font-size:12px;color:var(--muted);margin-top:6px;display:block">Verifique os dados e tente novamente</span></div>';
       SFX.error();
       return;
     }
-    
+
     SFX.validateOk();
     res.innerHTML = tickets.map(t => `
       <div class="busca-resultado-card" onclick="verIngresso('${t.number}')">
-        <div class="br-num">#${t.number}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span class="br-num">#${t.number}</span>
+          <span style="font-size:11px;padding:2px 8px;border-radius:20px;font-weight:700;
+            ${t.used ? 'background:rgba(233,69,96,0.15);color:#e94560' : 'background:rgba(0,200,150,0.15);color:#00c896'}">
+            ${t.used ? '⚠️ USADO' : '✅ VÁLIDO'}
+          </span>
+        </div>
         <div class="br-nome">${t.name}</div>
         <div class="br-info">🎟 ${t.type} • 💰 ${t.price}</div>
         <div class="br-info">📧 ${t.email}</div>
-        <div class="br-info" style="margin-top:4px">
-          ${t.used 
-            ? '<span class="br-status-usado">⚠️ Ingresso já utilizado</span>' 
-            : '<span class="br-status-valido">✅ Válido — Clique para ver</span>'}
+        <div class="br-info">🪪 ${t.cpf || '—'}</div>
+        <div style="font-size:11px;color:var(--accent);margin-top:6px;font-weight:600">
+          ${t.used ? '⚠️ Este ingresso já foi utilizado na entrada' : '👆 Clique para ver o QR Code completo'}
         </div>
       </div>
     `).join('');
-    
-    // Se só tem um resultado, mostra direto
+
     if (tickets.length === 1 && !tickets[0].used) {
-      setTimeout(() => verIngresso(tickets[0].number), 800);
+      setTimeout(() => verIngresso(tickets[0].number), 600);
     }
-  } catch {
-    res.innerHTML = '<div style="text-align:center;padding:12px;color:#e94560;font-size:13px">❌ Erro ao buscar. Tente novamente.</div>';
+
+  } catch(e) {
+    console.error('Busca error:', e);
+    res.innerHTML = '<div style="text-align:center;padding:12px;color:#e94560;font-size:13px">❌ Erro ao buscar: ' + e.message + '</div>';
     SFX.error();
   }
 }
@@ -2024,18 +2060,30 @@ async function buscarIngresso() {
 async function verIngresso(number) {
   try {
     const r = await fetch('/api/tickets');
+    if (!r.ok) throw new Error('Erro ' + r.status);
     const tickets = await r.json();
     const ticket = tickets.find(t => t.number === number);
-    if (ticket) {
-      currentTicket = ticket;
-      renderTicket(ticket);
-      document.getElementById('busca-resultados').innerHTML = '';
-      document.getElementById('busca-input').value = '';
-      // Scroll para o ingresso
-      document.getElementById('ticket-display').scrollIntoView({behavior:'smooth'});
-      SFX.approved();
+    if (!ticket) {
+      showToast('Ingresso #' + number + ' não encontrado.');
+      return;
     }
-  } catch { showToast('Erro ao carregar ingresso.'); }
+    currentTicket = ticket;
+    // Garante que config esta carregado antes de renderizar
+    if (!config.eventName) await loadConfig();
+    renderTicket(ticket);
+    document.getElementById('no-ticket').style.display = 'none';
+    document.getElementById('ticket-display').style.display = 'block';
+    document.getElementById('busca-resultados').innerHTML =
+      '<div style="text-align:center;padding:8px;color:var(--success);font-size:12px">✅ Ingresso #' + number + ' carregado abaixo!</div>';
+    document.getElementById('busca-input').value = '';
+    setTimeout(() => {
+      document.getElementById('ticket-display').scrollIntoView({behavior:'smooth', block:'start'});
+    }, 200);
+    SFX.approved();
+  } catch(e) {
+    showToast('Erro ao carregar ingresso: ' + e.message);
+    SFX.error();
+  }
 }
 
 function showToast(msg) {
