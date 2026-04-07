@@ -209,6 +209,131 @@ async function getNextNumber() {
   return String(Math.max(...all.map(t => parseInt(t.number)||100000)) + 1);
 }
 
+// ===== EMAIL VIA RESEND API =====
+async function enviarEmailIngresso(ticket, eventConfig) {
+  const RESEND_KEY = process.env.RESEND_API_KEY;
+  if (!RESEND_KEY) { console.log('RESEND_API_KEY nao configurada - email nao enviado'); return false; }
+  
+  try {
+    const eventName = eventConfig?.eventName || 'Retro Gamer Day';
+    const eventDate = eventConfig?.eventDate || '';
+    const eventLocal = eventConfig?.eventLocal || '';
+    
+    const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><style>
+body{font-family:Arial,sans-serif;background:#0a0a1a;color:#f0f4ff;margin:0;padding:0}
+.container{max-width:500px;margin:0 auto;padding:20px}
+.header{background:linear-gradient(135deg,#1a1a2e,#0d1f3c);border-radius:16px 16px 0 0;padding:28px;text-align:center;border-bottom:2px solid #ffd700}
+.logo-txt{font-size:22px;font-weight:900;color:#ffd700;letter-spacing:2px}
+.sub{font-size:13px;color:#8892a4;margin-top:4px}
+.ticket-box{background:#0d1f3c;border:2px solid #ffd700;border-radius:0 0 16px 16px;padding:24px}
+.ticket-num{font-family:monospace;font-size:28px;font-weight:700;color:#00c896;text-align:center;background:rgba(0,200,150,0.1);border:1px solid rgba(0,200,150,0.3);border-radius:10px;padding:12px;margin:16px 0;letter-spacing:4px}
+.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+.label{font-size:12px;color:#8892a4;text-transform:uppercase;letter-spacing:0.5px}
+.value{font-size:14px;font-weight:600;color:#f0f4ff}
+.btn{display:block;text-align:center;background:linear-gradient(135deg,#ffd700,#ffb300);color:#000;font-weight:700;font-size:14px;padding:14px 28px;border-radius:10px;text-decoration:none;margin:20px 0;letter-spacing:1px}
+.footer{text-align:center;font-size:11px;color:#4a5568;margin-top:20px}
+.warn{background:rgba(255,165,0,0.1);border:1px solid rgba(255,165,0,0.3);border-radius:8px;padding:12px;font-size:12px;color:#ffa500;margin-top:14px;text-align:center}
+</style></head>
+<body><div class="container">
+<div class="header">
+  <div class="logo-txt">🎮 GalzGames Ingressos</div>
+  <div class="sub">${eventName}</div>
+</div>
+<div class="ticket-box">
+  <p style="text-align:center;font-size:15px;margin-bottom:4px">Olá, <strong>${ticket.name}</strong>!</p>
+  <p style="text-align:center;font-size:13px;color:#8892a4;margin-bottom:16px">Seu ingresso foi confirmado 🎉</p>
+  
+  <div class="ticket-num">#${ticket.number}</div>
+  
+  <div class="row"><span class="label">Evento</span><span class="value">${eventName}</span></div>
+  <div class="row"><span class="label">Data</span><span class="value">${eventDate}</span></div>
+  <div class="row"><span class="label">Local</span><span class="value">${eventLocal}</span></div>
+  <div class="row"><span class="label">Tipo</span><span class="value">${ticket.type}</span></div>
+  <div class="row"><span class="label">Valor</span><span class="value">${ticket.price}</span></div>
+  <div class="row"><span class="label">CPF</span><span class="value">${ticket.cpf}</span></div>
+  
+  <a href="https://ingressos.retrogamerday.com.br" class="btn">🎟 VER MEU INGRESSO ONLINE</a>
+  
+  <div class="warn">
+    ⚠️ Guarde este e-mail! Seu número de ingresso é <strong>#${ticket.number}</strong>.<br>
+    Acesse o site e busque pelo número ou CPF para ver o QR Code.
+  </div>
+</div>
+<div class="footer">
+  GalzGames Ingressos • ingressos.retrogamerday.com.br<br>
+  Este e-mail foi enviado automaticamente após confirmação do pagamento.
+</div>
+</div></body></html>`;
+
+    const emailData = {
+      from: 'GalzGames Ingressos <noreply@retrogamerday.com.br>',
+      to: [ticket.email],
+      subject: `🎟 Seu ingresso #${ticket.number} - ${eventName}`,
+      html
+    };
+
+    const r = new (require('http').ClientRequest || Object)();
+    const result = await new Promise((resolve, reject) => {
+      const options = {
+        hostname: 'api.resend.com',
+        path: '/emails',
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${RESEND_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      };
+      const https = require('https');
+      const req = https.request(options, res => {
+        let data = '';
+        res.on('data', c => data += c);
+        res.on('end', () => resolve({ status: res.statusCode, body: data }));
+      });
+      req.on('error', reject);
+      req.write(JSON.stringify(emailData));
+      req.end();
+    });
+
+    console.log('Email enviado:', result.status, ticket.email);
+    return result.status === 200 || result.status === 201;
+  } catch(e) {
+    console.error('Erro ao enviar email:', e.message);
+    return false;
+  }
+}
+
+// ===== GERAR E SALVAR TICKET (helper central) =====
+async function gerarTicketDoPedido(pedido) {
+  const all = await getTickets();
+  const tNumber = getNextNumberSync(all);
+  const tCpf = (pedido.cpf||'').replace(/[^\d]/g,'');
+  const tHash = gerarQRHash(tNumber, tCpf, QR_SECRET);
+  const ticket = {
+    id: require('crypto').randomUUID(),
+    number: tNumber,
+    qrHash: tHash,
+    qrCode: tNumber + ':' + tHash,
+    name: pedido.name, email: pedido.email, cpf: pedido.cpf,
+    type: pedido.type, typeKey: pedido.typeKey, price: pedido.price,
+    qty: pedido.qty, pagamento: pedido.pagamento || 'infinitepay',
+    used: false, createdAt: new Date().toISOString()
+  };
+  await addTicket(ticket);
+  await updatePedido(pedido.number, { 
+    status: 'aprovado', 
+    ticketNumber: ticket.number, 
+    approvedAt: new Date().toISOString() 
+  });
+  // Enviar email
+  const cfg = await getConfig();
+  await enviarEmailIngresso(ticket, cfg);
+  console.log('Ticket gerado:', ticket.number, 'para', ticket.email);
+  return ticket;
+}
+
 // HTTP helpers
 const MIME = { '.html':'text/html','.css':'text/css','.js':'application/javascript','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.ico':'image/x-icon','.json':'application/json' };
 
@@ -370,24 +495,8 @@ const server = http.createServer(async (req, res) => {
       const pedido = await getPedido(number);
       if (!pedido) return jsonRes(res, 404, { error: 'Pedido não encontrado.' });
       if (pedido.status === 'aprovado') return jsonRes(res, 200, { ok: false, error: 'Pedido já aprovado. Ingresso #' + pedido.ticketNumber });
-      // Gerar ingresso com QR seguro
-      const all = await getTickets();
-      const tNumber = getNextNumberSync(all);
-      const tCpf = (pedido.cpf||'').replace(/[^\d]/g,'');
-      const tHash = gerarQRHash(tNumber, tCpf, QR_SECRET);
-      const ticket = {
-        id: require('crypto').randomUUID(),
-        number: tNumber,
-        qrHash: tHash,
-        qrCode: tNumber + ':' + tHash,
-        name: pedido.name, email: pedido.email, cpf: pedido.cpf,
-        type: pedido.type, typeKey: pedido.typeKey, price: pedido.price,
-        qty: pedido.qty, pagamento: pedido.pagamento || 'manual',
-        used: false, createdAt: new Date().toISOString()
-      };
-      await addTicket(ticket);
-      await updatePedido(number, { status: 'aprovado', ticketNumber: ticket.number, approvedAt: new Date().toISOString() });
-      console.log('Pedido aprovado manualmente:', number, '-> Ingresso:', ticket.number);
+      const ticket = await gerarTicketDoPedido({ ...pedido, pagamento: pedido.pagamento || 'manual' });
+      console.log('Aprovado manualmente:', number, '-> Ingresso:', ticket.number);
       return jsonRes(res, 200, { ok: true, ticket });
     }
     // POST /api/pedidos/:number/rejeitar
@@ -401,31 +510,22 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/api/webhook/infinitepay' && req.method === 'POST') {
       return parseBody(req, async body => {
         try {
-          // InfinitePay envia status do pagamento
-          const status = body.status || body.payment_status || '';
-          const orderId = body.order_id || body.reference || body.metadata?.pedido || '';
+          console.log('Webhook recebido:', JSON.stringify(body).slice(0,300));
+          // Aceita varios formatos de status da InfinitePay
+          const status = (body.status || body.payment_status || body.charge?.status || '').toLowerCase();
+          const orderId = body.order_id || body.reference || body.external_id || 
+                         body.metadata?.pedido || body.charge?.metadata?.pedido || '';
           
-          if ((status === 'approved' || status === 'paid' || status === 'succeeded') && orderId) {
+          const statusAprovado = ['approved','paid','succeeded','active','captured','complete','completed'].includes(status);
+          
+          if (statusAprovado && orderId) {
             const pedido = await getPedido(orderId);
             if (pedido && pedido.status === 'pendente') {
-              const all = await getTickets();
-              const wNumber = getNextNumberSync(all);
-              const wCpf = (pedido.cpf||'').replace(/[^\d]/g,'');
-              const wHash = gerarQRHash(wNumber, wCpf, QR_SECRET);
-              const ticket = {
-                id: require('crypto').randomUUID(),
-                number: wNumber,
-                qrHash: wHash,
-                qrCode: wNumber + ':' + wHash,
-                name: pedido.name, email: pedido.email, cpf: pedido.cpf,
-                type: pedido.type, typeKey: pedido.typeKey, price: pedido.price,
-                qty: pedido.qty, pagamento: pedido.pagamento || 'infinitepay',
-                used: false, createdAt: new Date().toISOString()
-              };
-              await addTicket(ticket);
-              await updatePedido(orderId, { status: 'aprovado', ticketNumber: ticket.number, approvedAt: new Date().toISOString() });
-              console.log('Pagamento aprovado via webhook:', orderId, '-> Ingresso:', ticket.number);
+              const ticket = await gerarTicketDoPedido(pedido);
+              console.log('Webhook: ingresso gerado', ticket.number, 'para', ticket.email);
             }
+          } else {
+            console.log('Webhook ignorado: status=', status, 'orderId=', orderId);
           }
           jsonRes(res, 200, { ok: true });
         } catch(e) {
