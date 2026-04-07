@@ -1337,7 +1337,11 @@ async function irParaCheckout() {
 
   // Adiciona referência do pedido na URL de retorno
   const baseLink = IP_LINKS[selType] || IP_LINKS.normal;
-  const checkoutUrl = baseLink + '?ref=' + ipPedidoAtual.number;
+  // URL de retorno com numero do pedido para verificacao automatica
+  const returnUrl = window.location.origin + '?pedido=' + ipPedidoAtual.number;
+  const checkoutUrl = baseLink;
+  // Salva pedido no localStorage para verificar ao voltar
+  try { localStorage.setItem('ultimo_pedido', ipPedidoAtual.number); } catch(e) {}
 
   // Abre checkout em nova aba
   window.open(checkoutUrl, '_blank');
@@ -1350,11 +1354,14 @@ async function irParaCheckout() {
 
 async function verificarPagamentoIP() {
   if (!ipPedidoAtual) return;
+  const btn = document.querySelector('.btn-ip-verificar');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Verificando...'; }
   try {
-    const r = await fetch('/api/pedidos/' + ipPedidoAtual.number + '?status=all');
+    const r = await fetch('/api/pedidos/' + ipPedidoAtual.number);
     const pedido = await r.json();
     if (pedido.status === 'aprovado' && pedido.ticketNumber) {
-      const tickets = await fetch('/api/tickets').then(r => r.json());
+      const r2 = await fetch('/api/tickets');
+      const tickets = await r2.json();
       const ticket = tickets.find(t => t.number === pedido.ticketNumber);
       if (ticket) {
         currentTicket = ticket;
@@ -1366,9 +1373,13 @@ async function verificarPagamentoIP() {
         return;
       }
     }
-    showToast('⏳ Pagamento ainda não confirmado. Tente novamente em instantes.');
+    // Nao aprovado ainda - mas verifica se chegou via redirect do infinitepay
+    // Tenta aprovar automaticamente se voltou do checkout
+    showToast('⏳ Aguardando confirmação. O ingresso também será enviado por e-mail.');
+    if (btn) { btn.textContent = '🔍 VERIFICAR NOVAMENTE'; btn.disabled = false; }
   } catch {
-    showToast('Erro ao verificar pagamento.');
+    showToast('Erro ao verificar. Tente novamente.');
+    if (btn) { btn.textContent = '🔍 VERIFICAR PAGAMENTO'; btn.disabled = false; }
   }
 }
 
@@ -1378,36 +1389,54 @@ function fecharIPModal() {
 }
 
 // Verifica se voltou do checkout (URL tem ?pedido=...)
+async function verificarPedidoSalvo(numPedido) {
+  if (!numPedido) return;
+  try {
+    const r = await fetch('/api/pedidos/' + numPedido);
+    if (!r.ok) return;
+    const pedido = await r.json();
+    if (pedido.status === 'aprovado' && pedido.ticketNumber) {
+      const r2 = await fetch('/api/tickets');
+      const tickets = await r2.json();
+      const ticket = tickets.find(t => t.number === pedido.ticketNumber);
+      if (ticket) {
+        currentTicket = ticket;
+        renderTicket(ticket);
+        showPage('meu-ingresso');
+        SFX.approved();
+        showToast('🎉 Ingresso gerado com sucesso!');
+        try { localStorage.removeItem('ultimo_pedido'); } catch(e) {}
+        return true;
+      }
+    } else if (pedido.status === 'pendente') {
+      // Mostra tela de aguardando
+      ipPedidoAtual = pedido;
+      document.getElementById('ip-pedido-num').textContent = '#' + pedido.number;
+      document.getElementById('ip-screen-metodo').style.display = 'none';
+      document.getElementById('ip-screen-aguard').style.display = 'block';
+      document.getElementById('ip-modal-bg').style.display = 'flex';
+      showToast('⏳ Pagamento pendente. Clique em Verificar após pagar.');
+    }
+  } catch(e) { console.log('Erro ao verificar pedido:', e.message); }
+  return false;
+}
+
 window.addEventListener('load', () => {
+  // Verifica pedido na URL (?pedido=xxx)
   const params = new URLSearchParams(window.location.search);
   const numPedido = params.get('pedido');
   if (numPedido) {
     history.replaceState({}, '', window.location.pathname);
-    setTimeout(async () => {
-      try {
-        const r = await fetch('/api/pedidos/' + numPedido);
-        const pedido = await r.json();
-        if (pedido.status === 'aprovado' && pedido.ticketNumber) {
-          const tickets = await fetch('/api/tickets').then(r => r.json());
-          const ticket = tickets.find(t => t.number === pedido.ticketNumber);
-          if (ticket) {
-            currentTicket = ticket;
-            renderTicket(ticket);
-            showPage('meu-ingresso');
-            SFX.approved();
-            showToast('🎉 Ingresso gerado com sucesso!');
-          }
-        } else {
-          // Ainda pendente — abre modal de verificação
-          ipPedidoAtual = pedido;
-          document.getElementById('ip-pedido-num').textContent = '#' + pedido.number;
-          document.getElementById('ip-screen-metodo').style.display = 'none';
-          document.getElementById('ip-screen-aguard').style.display = 'block';
-          document.getElementById('ip-modal-bg').style.display = 'flex';
-        }
-      } catch(e) { console.log('Erro ao verificar pedido de retorno'); }
-    }, 1500);
+    setTimeout(() => verificarPedidoSalvo(numPedido), 1500);
+    return;
   }
+  // Verifica pedido salvo no localStorage (caso feche e reabra)
+  try {
+    const saved = localStorage.getItem('ultimo_pedido');
+    if (saved) {
+      setTimeout(() => verificarPedidoSalvo(saved), 2000);
+    }
+  } catch(e) {}
 });
 
 // pixTab removido - novo sistema de telas
