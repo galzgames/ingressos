@@ -579,6 +579,152 @@ canvas#cam-canvas{display:none}
 .br-info{font-size:12px;color:var(--muted)}
 .br-status-usado{color:#e94560;font-weight:700}
 .br-status-valido{color:var(--success);font-weight:700}
+
+/* ===== IMPRESSAO PROFISSIONAL ===== */
+@media print {
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+  .topbar, .busca-box, .ticket-actions, .toast, #admin-login-bg,
+  #reset-modal-bg, #ip-modal-bg, #pix-modal-bg, .menu-overlay,
+  .admin-tabs, .no-ticket { display: none !important; }
+  .page { display: none !important; }
+  #page-meu-ingresso { display: block !important; padding: 0 !important; }
+  .ticket-wrap { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+  #ticket-display { display: block !important; }
+  .print-ticket-area {
+    width: 100% !important;
+    max-width: 100% !important;
+    page-break-inside: avoid !important;
+  }
+}
+
+/* ===== MODAL DE IMPRESSAO ===== */
+#print-modal-bg {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.92);
+  z-index: 99999; display: none; align-items: center;
+  justify-content: center; padding: 16px;
+}
+#print-modal-bg.open { display: flex; }
+.print-modal {
+  background: #fff; border-radius: 16px; overflow: hidden;
+  width: 100%; max-width: 480px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.8);
+}
+.print-modal-header {
+  background: linear-gradient(135deg, #1a1a2e, #0d1f3c);
+  padding: 16px 20px; display: flex; align-items: center;
+  justify-content: space-between;
+}
+.print-modal-title {
+  font-family: 'Orbitron', monospace; font-size: 14px;
+  font-weight: 700; color: #ffd700;
+}
+.print-modal-close {
+  background: transparent; border: none; color: #8892a4;
+  font-size: 20px; cursor: pointer; padding: 0 4px;
+}
+/* INGRESSO PARA IMPRESSAO */
+#print-area {
+  background: #fff;
+  font-family: Arial, sans-serif;
+  color: #111;
+}
+.pa-top {
+  position: relative;
+  height: 180px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.pa-bg {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+}
+.pa-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.75));
+}
+.pa-top-content {
+  position: relative; z-index: 1;
+  padding: 16px 20px;
+  display: flex; align-items: center; gap: 12px;
+}
+.pa-logo {
+  width: 48px; height: 48px; border-radius: 50%;
+  object-fit: cover; border: 2px solid #ffd700;
+  flex-shrink: 0;
+}
+.pa-evento { flex: 1; }
+.pa-evento-nome {
+  font-family: 'Orbitron', monospace; font-size: 18px;
+  font-weight: 900; color: #fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+  margin-bottom: 3px;
+}
+.pa-evento-data { font-size: 12px; color: rgba(255,255,255,0.85); }
+
+.pa-perf {
+  display: flex; align-items: center;
+  background: #fff; margin: 0;
+}
+.pa-perf-dot {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #1a1a2e; flex-shrink: 0;
+}
+.pa-perf-line {
+  flex: 1; border-top: 2px dashed #ccc;
+}
+
+.pa-body { padding: 16px 20px; background: #fff; }
+.pa-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; margin-bottom: 14px;
+}
+.pa-field {}
+.pa-label {
+  font-size: 9px; color: #888; text-transform: uppercase;
+  letter-spacing: 0.5px; font-weight: 700; margin-bottom: 2px;
+}
+.pa-value { font-size: 13px; font-weight: 700; color: #111; }
+
+.pa-bottom {
+  display: flex; justify-content: space-between;
+  align-items: center; border-top: 1px solid #eee;
+  padding-top: 12px;
+}
+.pa-numero {}
+.pa-num-label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+.pa-num-val {
+  font-family: 'Courier New', monospace; font-size: 20px;
+  font-weight: 700; color: #111; letter-spacing: 2px;
+}
+.pa-footer {
+  background: #f8f8f8; padding: 10px 20px;
+  text-align: center; font-size: 10px; color: #888;
+  border-top: 1px solid #eee;
+}
+/* Botoes do modal */
+.print-modal-btns {
+  display: flex; gap: 10px; padding: 14px 20px;
+  background: #f8f8f8; border-top: 1px solid #eee;
+}
+.btn-imprimir-modal {
+  flex: 1; background: #1a1a2e; color: #ffd700;
+  border: none; border-radius: 8px; padding: 12px;
+  font-family: 'Orbitron', monospace; font-size: 11px;
+  font-weight: 700; cursor: pointer; letter-spacing: 0.5px;
+  transition: all 0.2s;
+}
+.btn-imprimir-modal:hover { background: #0d1f3c; }
+.btn-fechar-print {
+  background: transparent; color: #888;
+  border: 1px solid #ddd; border-radius: 8px; padding: 12px 20px;
+  font-family: Arial, sans-serif; font-size: 13px;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-fechar-print:hover { border-color: #e94560; color: #e94560; }
 </style>
 </head>
 <body>
@@ -781,7 +927,7 @@ canvas#cam-canvas{display:none}
         </div>
       </div>
       <div class="ticket-actions">
-        <button class="btn-secondary" onclick="window.print()">🖨 Imprimir</button>
+        <button class="btn-secondary" onclick="abrirImpressao()">🖨 Imprimir</button>
         <button class="btn-secondary" id="btn-copy" onclick="copiarCodigo()">📋 Copiar Código</button>
       </div>
     </div>
@@ -2086,6 +2232,191 @@ async function verIngresso(number) {
   }
 }
 
+
+// ===== IMPRESSAO PROFISSIONAL =====
+function abrirImpressao() {
+  if (!currentTicket) { showToast('Nenhum ingresso para imprimir!'); return; }
+  const t = currentTicket;
+
+  // Preenche os dados
+  document.getElementById('pa-nome').textContent = t.name || '—';
+  document.getElementById('pa-tipo').textContent = t.type || '—';
+  document.getElementById('pa-local').textContent = config.eventLocal || '—';
+  document.getElementById('pa-preco').textContent = t.price || '—';
+  document.getElementById('pa-cpf').textContent = t.cpf || '—';
+  document.getElementById('pa-pgto').textContent = (t.pagamento || 'pix').toUpperCase();
+  document.getElementById('pa-numero').textContent = '#' + t.number;
+  document.getElementById('pa-nome-evento').textContent = config.eventName || 'GalzGames';
+  document.getElementById('pa-data-evento').textContent = config.eventDate || '';
+
+  // Imagem de fundo
+  const bgImg = document.getElementById('pa-bg-img');
+  const ticketBg = document.getElementById('ticket-bg');
+  if (ticketBg && ticketBg.src) bgImg.src = ticketBg.src;
+
+  // QR Code
+  const qrContent = t.qrCode || t.number;
+  desenharQRImpressao(qrContent, 'pa-qr-canvas');
+
+  // Abre modal
+  document.getElementById('print-modal-bg').classList.add('open');
+  SFX.save();
+}
+
+function fecharPrintModal() {
+  document.getElementById('print-modal-bg').classList.remove('open');
+}
+
+function desenharQRImpressao(text, canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const sz = 90, cells = 21, cell = Math.floor(sz / cells);
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, sz, sz);
+  ctx.fillStyle = '#111';
+  const seed = text.split('').reduce((a,c,i) => a + c.charCodeAt(0)*(i+7), 0);
+  function bit(r,c) { const v=(seed^(r*31337+c*7919))*2654435761; return (v>>>16)%3!==0; }
+  for(let r=0;r<cells;r++) for(let c=0;c<cells;c++) {
+    const inFP=(r<8&&c<8)||(r<8&&c>cells-9)||(r>cells-9&&c<8);
+    if(!inFP && bit(r,c)) ctx.fillRect(c*cell+1,r*cell+1,cell-1,cell-1);
+  }
+  ctx.fillStyle='#111';
+  [[0,0],[cells-7,0],[0,cells-7]].forEach(([ox,oy])=>{
+    ctx.fillRect(ox*cell,oy*cell,7*cell,7*cell);
+    ctx.fillStyle='#fff'; ctx.fillRect((ox+1)*cell,(oy+1)*cell,5*cell,5*cell);
+    ctx.fillStyle='#111'; ctx.fillRect((ox+2)*cell,(oy+2)*cell,3*cell,3*cell);
+  });
+}
+
+function executarImpressao() {
+  const printArea = document.getElementById('print-area');
+  const printWindow = window.open('', '_blank', 'width=520,height=700');
+  
+  // Captura imagem de fundo como base64
+  const bgImg = document.getElementById('pa-bg-img');
+  const bgSrc = bgImg ? bgImg.src : '/images/banner.jpeg';
+  const logoImg = document.querySelector('.pa-logo');
+  const logoSrc = logoImg ? logoImg.src : '/images/logo.png';
+  
+  // Captura QR como base64
+  const qrCanvas = document.getElementById('pa-qr-canvas');
+  const qrDataUrl = qrCanvas ? qrCanvas.toDataURL() : '';
+  
+  const t = currentTicket;
+  const eventName = document.getElementById('pa-nome-evento').textContent;
+  const eventDate = document.getElementById('pa-data-evento').textContent;
+
+  printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Ingresso #${t.number} - ${eventName}</title>
+<style>
+  @page { size: A6 landscape; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { width: 148mm; height: 105mm; overflow: hidden; font-family: Arial, sans-serif; background: #fff; }
+  .ticket { width: 148mm; height: 105mm; display: flex; flex-direction: column; }
+  .top { position: relative; height: 45mm; overflow: hidden; flex-shrink: 0; }
+  .top-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .top-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.78)); }
+  .top-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; padding: 10px 14px; height: 100%; align-items: flex-end; padding-bottom: 12px; }
+  .logo { width: 36px; height: 36px; border-radius: 50%; border: 2px solid #ffd700; object-fit: cover; }
+  .evento-nome { font-size: 16px; font-weight: 900; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,0.8); letter-spacing: 0.5px; }
+  .evento-data { font-size: 10px; color: rgba(255,255,255,0.85); margin-top: 2px; }
+  .perf { display: flex; align-items: center; height: 14px; background: #fff; flex-shrink: 0; }
+  .perf-dot { width: 14px; height: 14px; border-radius: 50%; background: #f0f0f0; flex-shrink: 0; }
+  .perf-line { flex: 1; border-top: 2px dashed #ccc; }
+  .body { flex: 1; background: #fff; padding: 10px 14px 8px; display: flex; flex-direction: column; justify-content: space-between; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  .field-label { font-size: 7px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 2px; }
+  .field-val { font-size: 11px; font-weight: 700; color: #111; }
+  .field-val.preco { color: #e94560; }
+  .field-val.small { font-size: 9px; }
+  .bottom { display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #ddd; padding-top: 8px; }
+  .num-label { font-size: 7px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .num-val { font-family: 'Courier New', monospace; font-size: 18px; font-weight: 700; color: #111; letter-spacing: 3px; }
+  .qr { border: 1px solid #eee; border-radius: 4px; }
+  .footer { background: #f5f5f5; padding: 5px 14px; text-align: center; font-size: 8px; color: #888; border-top: 1px solid #e8e8e8; flex-shrink: 0; }
+  @media print {
+    body { width: 148mm; height: 105mm; }
+    .ticket { page-break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="ticket">
+  <div class="top">
+    <img class="top-bg" src="${bgSrc}" alt="" crossorigin="anonymous" />
+    <div class="top-overlay"></div>
+    <div class="top-content">
+      <img class="logo" src="${logoSrc}" alt="Logo" crossorigin="anonymous" />
+      <div>
+        <div class="evento-nome">${eventName}</div>
+        <div class="evento-data">${eventDate}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="perf">
+    <div class="perf-dot"></div>
+    <div class="perf-line"></div>
+    <div class="perf-dot"></div>
+  </div>
+
+  <div class="body">
+    <div class="grid">
+      <div>
+        <div class="field-label">Titular</div>
+        <div class="field-val">${t.name}</div>
+      </div>
+      <div>
+        <div class="field-label">Tipo</div>
+        <div class="field-val">${t.type}</div>
+      </div>
+      <div>
+        <div class="field-label">Valor</div>
+        <div class="field-val preco">${t.price}</div>
+      </div>
+      <div>
+        <div class="field-label">CPF</div>
+        <div class="field-val small">${t.cpf || '—'}</div>
+      </div>
+      <div>
+        <div class="field-label">Local</div>
+        <div class="field-val small">${config.eventLocal || '—'}</div>
+      </div>
+      <div>
+        <div class="field-label">Pagamento</div>
+        <div class="field-val small">${(t.pagamento||'pix').toUpperCase()}</div>
+      </div>
+    </div>
+
+    <div class="bottom">
+      <div>
+        <div class="num-label">Nº do Ingresso</div>
+        <div class="num-val">#${t.number}</div>
+      </div>
+      <img class="qr" src="${qrDataUrl}" width="70" height="70" alt="QR Code" />
+    </div>
+  </div>
+
+  <div class="footer">
+    GalzGames Ingressos • ingressos.retrogamerday.com.br • Apresente na entrada
+  </div>
+</div>
+
+<script>
+  window.onload = function() {
+    setTimeout(function() { window.print(); window.close(); }, 800);
+  };
+<\/script>
+</body>
+</html>`);
+  
+  printWindow.document.close();
+  fecharPrintModal();
+}
+
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
@@ -2639,6 +2970,90 @@ window.showPage = function(id) {
         </div>
       </div>
 
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL DE IMPRESSAO -->
+<div id="print-modal-bg">
+  <div class="print-modal">
+    <div class="print-modal-header">
+      <span class="print-modal-title">🖨️ Imprimir Ingresso</span>
+      <button class="print-modal-close" onclick="fecharPrintModal()">✕</button>
+    </div>
+
+    <!-- INGRESSO PARA IMPRESSAO -->
+    <div id="print-area">
+      <!-- Topo com imagem de fundo -->
+      <div class="pa-top" id="pa-top">
+        <img id="pa-bg-img" class="pa-bg" src="/images/banner.jpeg" alt="" />
+        <div class="pa-overlay"></div>
+        <div class="pa-top-content">
+          <img src="/images/logo.png" class="pa-logo" alt="Logo" />
+          <div class="pa-evento">
+            <div class="pa-evento-nome" id="pa-nome-evento">Retro Gamer Day</div>
+            <div class="pa-evento-data" id="pa-data-evento">Sabado, 10 Mai 2025</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Perfuração -->
+      <div class="pa-perf">
+        <div class="pa-perf-dot"></div>
+        <div class="pa-perf-line"></div>
+        <div class="pa-perf-dot"></div>
+      </div>
+
+      <!-- Corpo do ingresso -->
+      <div class="pa-body">
+        <div class="pa-grid">
+          <div class="pa-field">
+            <div class="pa-label">Titular</div>
+            <div class="pa-value" id="pa-nome">—</div>
+          </div>
+          <div class="pa-field">
+            <div class="pa-label">Tipo</div>
+            <div class="pa-value" id="pa-tipo">—</div>
+          </div>
+          <div class="pa-field">
+            <div class="pa-label">Local</div>
+            <div class="pa-value" id="pa-local" style="font-size:11px">—</div>
+          </div>
+          <div class="pa-field">
+            <div class="pa-label">Valor</div>
+            <div class="pa-value" id="pa-preco" style="color:#e94560">—</div>
+          </div>
+          <div class="pa-field">
+            <div class="pa-label">CPF</div>
+            <div class="pa-value" id="pa-cpf" style="font-size:11px">—</div>
+          </div>
+          <div class="pa-field">
+            <div class="pa-label">Pagamento</div>
+            <div class="pa-value" id="pa-pgto" style="font-size:11px">—</div>
+          </div>
+        </div>
+
+        <div class="pa-bottom">
+          <div class="pa-numero">
+            <div class="pa-num-label">Nº do Ingresso</div>
+            <div class="pa-num-val" id="pa-numero">—</div>
+          </div>
+          <canvas id="pa-qr-canvas" width="90" height="90"></canvas>
+        </div>
+      </div>
+
+      <div class="pa-footer" id="pa-footer">
+        GalzGames Ingressos • ingressos.retrogamerday.com.br •
+        Apresente este ingresso na entrada do evento
+      </div>
+    </div>
+
+    <div class="print-modal-btns">
+      <button class="btn-imprimir-modal" onclick="executarImpressao()">
+        🖨️ IMPRIMIR AGORA
+      </button>
+      <button class="btn-fechar-print" onclick="fecharPrintModal()">Fechar</button>
     </div>
   </div>
 </div>
