@@ -1,573 +1,391 @@
+// GalzGames Ingressos - Backend completo com MongoDB
 const http = require('http');
-const fs = require('fs');
+const fs   = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const url = require('url');
+const url  = require('url');
 
-const PORT = process.env.PORT || 3000;
-const MONGO_URI = process.env.MONGO_URI;
-const UPLOADS_DIR = path.join(__dirname, 'public', 'images', 'uploads');
+const PORT        = process.env.PORT || 3000;
+const MONGO_URI   = process.env.MONGO_URI;
 const ADMIN_SENHA = process.env.ADMIN_SENHA || 'Suenia81@';
-const DATA_FILE = path.join(__dirname, 'data', 'tickets.json');
-const CONFIG_FILE = path.join(__dirname, 'data', 'config.json');
+const QR_SECRET   = process.env.QR_SECRET   || 'galzgames2025retrogamerday';
+const UPLOADS_DIR = path.join(__dirname, 'public', 'images', 'uploads');
 
-// Garante diretorios
-[UPLOADS_DIR, path.join(__dirname, 'data')].forEach(d => {
+[UPLOADS_DIR, path.join(__dirname,'data')].forEach(d => {
   if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
 });
 
-// Fallback JSON (se MongoDB nao disponivel)
-function readJSON(file) {
-  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return null; }
-}
-function writeJSON(file, data) {
-  fs.writeFileSync(file, JSON.stringify(data, null, 2));
-}
-if (!fs.existsSync(DATA_FILE)) writeJSON(DATA_FILE, []);
-if (!fs.existsSync(CONFIG_FILE)) writeJSON(CONFIG_FILE, {
-  eventName: 'Retro Gamer Day',
-  eventDate: 'Sabado, 10 Mai 2025 - 18h',
-  eventLocal: 'Arena GalzGames, Sao Paulo - SP',
-  bgImage: '/images/banner.jpeg',
-  precos: { normal:{nome:'Normal',valor:60,qtd:200}, vip:{nome:'VIP',valor:150,qtd:60}, meia:{nome:'Meia-Entrada',valor:30,qtd:100} },
-  pagamento: { pixChave:'+5583981663576', pixTipo:'Telefone', pixNome:'GalzGames', outros:[] }
+// ===== JSON FALLBACK =====
+const DATA_FILE    = path.join(__dirname,'data','tickets.json');
+const PEDIDOS_FILE = path.join(__dirname,'data','pedidos.json');
+const CONFIG_FILE  = path.join(__dirname,'data','config.json');
+const DEFAULT_CFG  = {
+  eventName:'Retro Gamer Day', eventDate:'Sabado, 10 Mai 2025 - 18h',
+  eventLocal:'Arena GalzGames, Sao Paulo - SP', bgImage:'/images/banner.jpeg',
+  precos:{ normal:{nome:'Normal',valor:60,qtd:200}, vip:{nome:'VIP',valor:150,qtd:60}, meia:{nome:'Meia-Entrada',valor:30,qtd:100} },
+  pagamento:{ pixChave:'+5583981663576', pixTipo:'Telefone', pixNome:'GalzGames', outros:[] }
+};
+[{f:DATA_FILE,d:[]},{f:PEDIDOS_FILE,d:[]},{f:CONFIG_FILE,d:DEFAULT_CFG}].forEach(({f,d})=>{
+  if (!fs.existsSync(f)) fs.writeFileSync(f, JSON.stringify(d,null,2));
 });
+function rj(f){ try{ return JSON.parse(fs.readFileSync(f,'utf8')); }catch{ return null; } }
+function wj(f,d){ fs.writeFileSync(f,JSON.stringify(d,null,2)); }
 
-// MongoDB
-let db = null;
-let usingMongo = false;
-
+// ===== MONGODB =====
+let db = null, usingMongo = false;
 async function connectMongo() {
-  if (!MONGO_URI) { console.log('MONGO_URI nao definido, usando JSON local'); return; }
+  if (!MONGO_URI) { console.log('Sem MONGO_URI - usando JSON'); return; }
   try {
     const { MongoClient } = require('mongodb');
-    const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 15000, tls: true, tlsAllowInvalidCertificates: false, connectTimeoutMS: 15000, socketTimeoutMS: 45000 });
+    const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS:15000 });
     await client.connect();
     db = client.db('galzgames');
     usingMongo = true;
     console.log('MongoDB conectado!');
-    // Config padrao
-    const cfg = await db.collection('config').findOne({ _id: 'main' });
-    if (!cfg) {
-      const localCfg = readJSON(CONFIG_FILE) || {};
-      await db.collection('config').insertOne({ _id: 'main', ...localCfg });
-    }
+    const cfg = await db.collection('config').findOne({ _id:'main' });
+    if (!cfg) await db.collection('config').insertOne({ _id:'main', ...DEFAULT_CFG });
   } catch(e) {
-    console.log('MongoDB falhou, usando JSON local:', e.message);
-    db = null; usingMongo = false;
+    console.log('MongoDB falhou, usando JSON:', e.message);
   }
 }
 
-// DB helpers
+// ===== DB HELPERS =====
 async function getConfig() {
-  if (usingMongo && db) {
-    const c = await db.collection('config').findOne({ _id: 'main' });
-    if (c) { const { _id, ...r } = c; return r; }
-  }
-  return readJSON(CONFIG_FILE) || {};
+  if (usingMongo) { const c=await db.collection('config').findOne({_id:'main'}); if(c){const{_id,...r}=c;return r;} }
+  return rj(CONFIG_FILE) || DEFAULT_CFG;
 }
-async function setConfig(update) {
-  if (usingMongo && db) {
-    const { _id, ...upd } = update;
-    await db.collection('config').updateOne({ _id:'main' }, { $set: upd }, { upsert:true });
-  } else {
-    const cur = readJSON(CONFIG_FILE) || {};
-    writeJSON(CONFIG_FILE, { ...cur, ...update });
-  }
+async function setConfig(upd) {
+  const {_id,...u}=upd;
+  if (usingMongo) await db.collection('config').updateOne({_id:'main'},{$set:u},{upsert:true});
+  else { const c=rj(CONFIG_FILE)||{}; wj(CONFIG_FILE,{...c,...u}); }
 }
 async function getTickets() {
-  if (usingMongo && db) {
-    const t = await db.collection('tickets').find({}).sort({ createdAt:1 }).toArray();
-    return t.map(({ _id, ...r }) => r);
-  }
-  return readJSON(DATA_FILE) || [];
+  if (usingMongo) { const t=await db.collection('tickets').find({}).sort({createdAt:1}).toArray(); return t.map(({_id,...r})=>r); }
+  return rj(DATA_FILE)||[];
 }
-async function addTicket(ticket) {
-  if (usingMongo && db) {
-    await db.collection('tickets').insertOne(ticket);
-  } else {
-    const t = readJSON(DATA_FILE) || [];
-    t.push(ticket);
-    writeJSON(DATA_FILE, t);
-  }
+async function addTicket(t) {
+  if (usingMongo) await db.collection('tickets').insertOne(t);
+  else { const a=rj(DATA_FILE)||[]; a.push(t); wj(DATA_FILE,a); }
 }
-async function validateTicket(number) {
-  if (usingMongo && db) {
-    const t = await db.collection('tickets').findOne({ number });
-    if (!t) return { found: false };
-    if (t.used) return { found: true, used: true, ticket: t };
-    await db.collection('tickets').updateOne({ number }, { $set: { used:true, usedAt: new Date().toISOString() } });
-    return { found: true, used: false, ticket: { ...t, used:true } };
-  } else {
-    const tickets = readJSON(DATA_FILE) || [];
-    const idx = tickets.findIndex(t => t.number === number);
-    if (idx === -1) return { found: false };
-    if (tickets[idx].used) return { found: true, used: true, ticket: tickets[idx] };
-    tickets[idx].used = true;
-    tickets[idx].usedAt = new Date().toISOString();
-    writeJSON(DATA_FILE, tickets);
-    return { found: true, used: false, ticket: tickets[idx] };
-  }
+async function findTicketByNumber(num) {
+  if (usingMongo) { const t=await db.collection('tickets').findOne({number:num}); if(t){const{_id,...r}=t;return r;} return null; }
+  return (rj(DATA_FILE)||[]).find(t=>t.number===num)||null;
+}
+async function markTicketUsed(num) {
+  const usedAt = new Date().toISOString();
+  if (usingMongo) await db.collection('tickets').updateOne({number:num},{$set:{used:true,usedAt}});
+  else { const a=rj(DATA_FILE)||[]; const i=a.findIndex(t=>t.number===num); if(i>=0){a[i].used=true;a[i].usedAt=usedAt;wj(DATA_FILE,a);} }
+}
+async function getPedidos(status) {
+  let all;
+  if (usingMongo) { const p=await db.collection('pedidos').find({}).sort({createdAt:-1}).toArray(); all=p.map(({_id,...r})=>r); }
+  else all=rj(PEDIDOS_FILE)||[];
+  return status && status!=='all' ? all.filter(p=>p.status===status) : all;
+}
+async function getPedido(num) {
+  if (usingMongo) { const p=await db.collection('pedidos').findOne({number:num}); if(p){const{_id,...r}=p;return r;} return null; }
+  return (rj(PEDIDOS_FILE)||[]).find(p=>p.number===num)||null;
+}
+async function addPedido(p) {
+  if (usingMongo) await db.collection('pedidos').insertOne(p);
+  else { const a=rj(PEDIDOS_FILE)||[]; a.push(p); wj(PEDIDOS_FILE,a); }
+}
+async function updatePedido(num, upd) {
+  if (usingMongo) await db.collection('pedidos').updateOne({number:num},{$set:upd});
+  else { const a=rj(PEDIDOS_FILE)||[]; const i=a.findIndex(p=>p.number===num); if(i>=0){a[i]={...a[i],...upd};wj(PEDIDOS_FILE,a);} }
 }
 async function resetTickets() {
-  if (usingMongo && db) {
-    await db.collection('tickets').deleteMany({});
-  } else {
-    writeJSON(DATA_FILE, []);
-  }
+  if (usingMongo) await db.collection('tickets').deleteMany({});
+  else wj(DATA_FILE,[]);
 }
-
-// ===== PEDIDOS =====
-const PEDIDOS_FILE = path.join(__dirname, 'data', 'pedidos.json');
-if (!fs.existsSync(PEDIDOS_FILE)) writeJSON(PEDIDOS_FILE, []);
-
-async function getPedidos() {
-  if (usingMongo && db) {
-    const p = await db.collection('pedidos').find({}).sort({ createdAt: -1 }).toArray();
-    return p.map(({ _id, ...r }) => r);
-  }
-  return readJSON(PEDIDOS_FILE) || [];
-}
-async function addPedido(pedido) {
-  if (usingMongo && db) { await db.collection('pedidos').insertOne(pedido); }
-  else { const p = readJSON(PEDIDOS_FILE)||[]; p.push(pedido); writeJSON(PEDIDOS_FILE, p); }
-}
-async function getPedido(number) {
-  if (usingMongo && db) { const p = await db.collection('pedidos').findOne({ number }); if(p){const{_id,...r}=p;return r;} return null; }
-  const p = readJSON(PEDIDOS_FILE)||[]; return p.find(x=>x.number===number)||null;
-}
-async function updatePedido(number, update) {
-  if (usingMongo && db) { await db.collection('pedidos').updateOne({ number }, { $set: update }); }
-  else { const p = readJSON(PEDIDOS_FILE)||[]; const i=p.findIndex(x=>x.number===number); if(i>=0){p[i]={...p[i],...update};writeJSON(PEDIDOS_FILE,p);} }
-}
-async function getNextPedidoNumber() {
-  const all = await getPedidos();
-  if(!all.length) return 'P10001';
-  const nums = all.map(p=>parseInt(p.number.replace('P',''))||10000);
-  return 'P' + (Math.max(...nums)+1);
-}
-function getNextNumberSync(all) {
-  if (!all || !all.length) return '100001';
-  return String(Math.max(...all.map(t => parseInt(t.number)||100000)) + 1);
-}
-
-// ===== VALIDACAO CPF REAL =====
-function validarCPF(cpf) {
-  cpf = cpf.replace(/[^\d]/g, '');
-  if (cpf.length !== 11) return false;
-  if (/^(\d)\1{10}$/.test(cpf)) return false; // todos iguais
-  let sum = 0;
-  for (let i = 0; i < 9; i++) sum += parseInt(cpf[i]) * (10 - i);
-  let rev = 11 - (sum % 11);
-  if (rev === 10 || rev === 11) rev = 0;
-  if (rev !== parseInt(cpf[9])) return false;
-  sum = 0;
-  for (let i = 0; i < 10; i++) sum += parseInt(cpf[i]) * (11 - i);
-  rev = 11 - (sum % 11);
-  if (rev === 10 || rev === 11) rev = 0;
-  return rev === parseInt(cpf[10]);
-}
-
-// ===== QR CODE SEGURO COM HASH =====
-function gerarQRHash(number, cpf, secret) {
-  const data = number + ':' + cpf + ':' + secret;
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    const chr = data.charCodeAt(i);
-    hash = ((hash << 5) - hash) + chr;
-    hash |= 0;
-  }
-  return Math.abs(hash).toString(36).toUpperCase().padStart(8, '0');
-}
-
-const QR_SECRET = process.env.QR_SECRET || 'galzgames2025retrogamerday';
-
-// ===== VERIFICAR CPF DUPLICADO =====
-async function cpfJaCadastrado(cpf, typeKey) {
-  const cpfLimpo = cpf.replace(/[^\d]/g, '');
-  // Verifica em pedidos
-  const pedidos = await getPedidos();
-  const pedidoDup = pedidos.find(p => 
-    p.cpf && p.cpf.replace(/[^\d]/g, '') === cpfLimpo && 
-    p.typeKey === typeKey && 
-    (p.status === 'pendente' || p.status === 'aprovado')
-  );
-  if (pedidoDup) return { duplicado: true, tipo: 'pedido', numero: pedidoDup.number };
-  // Verifica em tickets
-  const tickets = await getTickets();
-  const ticketDup = tickets.find(t => 
-    t.cpf && t.cpf.replace(/[^\d]/g, '') === cpfLimpo && 
-    t.typeKey === typeKey
-  );
-  if (ticketDup) return { duplicado: true, tipo: 'ingresso', numero: ticketDup.number };
-  return { duplicado: false };
-}
-
-async function getNextNumber() {
+async function getNextTicketNumber() {
   const all = await getTickets();
   if (!all.length) return '100001';
-  return String(Math.max(...all.map(t => parseInt(t.number)||100000)) + 1);
+  return String(Math.max(...all.map(t=>parseInt(t.number)||100000))+1);
+}
+async function getNextPedidoNumber() {
+  const all = await getPedidos('all');
+  if (!all.length) return 'P10001';
+  return 'P'+String(Math.max(...all.map(p=>parseInt(p.number.replace('P',''))||10000))+1);
 }
 
-// ===== EMAIL VIA RESEND API =====
-async function enviarEmailIngresso(ticket, eventConfig) {
-  const RESEND_KEY = process.env.RESEND_API_KEY;
-  if (!RESEND_KEY) { console.log('RESEND_API_KEY nao configurada - email nao enviado'); return false; }
-  
-  try {
-    const eventName = eventConfig?.eventName || 'Retro Gamer Day';
-    const eventDate = eventConfig?.eventDate || '';
-    const eventLocal = eventConfig?.eventLocal || '';
-    
-    const html = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"><style>
-body{font-family:Arial,sans-serif;background:#0a0a1a;color:#f0f4ff;margin:0;padding:0}
-.container{max-width:500px;margin:0 auto;padding:20px}
-.header{background:linear-gradient(135deg,#1a1a2e,#0d1f3c);border-radius:16px 16px 0 0;padding:28px;text-align:center;border-bottom:2px solid #ffd700}
-.logo-txt{font-size:22px;font-weight:900;color:#ffd700;letter-spacing:2px}
-.sub{font-size:13px;color:#8892a4;margin-top:4px}
-.ticket-box{background:#0d1f3c;border:2px solid #ffd700;border-radius:0 0 16px 16px;padding:24px}
-.ticket-num{font-family:monospace;font-size:28px;font-weight:700;color:#00c896;text-align:center;background:rgba(0,200,150,0.1);border:1px solid rgba(0,200,150,0.3);border-radius:10px;padding:12px;margin:16px 0;letter-spacing:4px}
-.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
-.label{font-size:12px;color:#8892a4;text-transform:uppercase;letter-spacing:0.5px}
-.value{font-size:14px;font-weight:600;color:#f0f4ff}
-.btn{display:block;text-align:center;background:linear-gradient(135deg,#ffd700,#ffb300);color:#000;font-weight:700;font-size:14px;padding:14px 28px;border-radius:10px;text-decoration:none;margin:20px 0;letter-spacing:1px}
-.footer{text-align:center;font-size:11px;color:#4a5568;margin-top:20px}
-.warn{background:rgba(255,165,0,0.1);border:1px solid rgba(255,165,0,0.3);border-radius:8px;padding:12px;font-size:12px;color:#ffa500;margin-top:14px;text-align:center}
-</style></head>
-<body><div class="container">
-<div class="header">
-  <div class="logo-txt">🎮 GalzGames Ingressos</div>
-  <div class="sub">${eventName}</div>
-</div>
-<div class="ticket-box">
-  <p style="text-align:center;font-size:15px;margin-bottom:4px">Olá, <strong>${ticket.name}</strong>!</p>
-  <p style="text-align:center;font-size:13px;color:#8892a4;margin-bottom:16px">Seu ingresso foi confirmado 🎉</p>
-  
-  <div class="ticket-num">#${ticket.number}</div>
-  
-  <div class="row"><span class="label">Evento</span><span class="value">${eventName}</span></div>
-  <div class="row"><span class="label">Data</span><span class="value">${eventDate}</span></div>
-  <div class="row"><span class="label">Local</span><span class="value">${eventLocal}</span></div>
-  <div class="row"><span class="label">Tipo</span><span class="value">${ticket.type}</span></div>
-  <div class="row"><span class="label">Valor</span><span class="value">${ticket.price}</span></div>
-  <div class="row"><span class="label">CPF</span><span class="value">${ticket.cpf}</span></div>
-  
-  <a href="https://ingressos.retrogamerday.com.br" class="btn">🎟 VER MEU INGRESSO ONLINE</a>
-  
-  <div class="warn">
-    ⚠️ Guarde este e-mail! Seu número de ingresso é <strong>#${ticket.number}</strong>.<br>
-    Acesse o site e busque pelo número ou CPF para ver o QR Code.
-  </div>
-</div>
-<div class="footer">
-  GalzGames Ingressos • ingressos.retrogamerday.com.br<br>
-  Este e-mail foi enviado automaticamente após confirmação do pagamento.
-</div>
-</div></body></html>`;
-
-    const emailData = {
-      from: 'GalzGames Ingressos <noreply@retrogamerday.com.br>',
-      to: [ticket.email],
-      subject: `🎟 Seu ingresso #${ticket.number} - ${eventName}`,
-      html
-    };
-
-    const r = new (require('http').ClientRequest || Object)();
-    const result = await new Promise((resolve, reject) => {
-      const options = {
-        hostname: 'api.resend.com',
-        path: '/emails',
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${RESEND_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      };
-      const https = require('https');
-      const req = https.request(options, res => {
-        let data = '';
-        res.on('data', c => data += c);
-        res.on('end', () => resolve({ status: res.statusCode, body: data }));
-      });
-      req.on('error', reject);
-      req.write(JSON.stringify(emailData));
-      req.end();
-    });
-
-    console.log('Email enviado:', result.status, ticket.email);
-    return result.status === 200 || result.status === 201;
-  } catch(e) {
-    console.error('Erro ao enviar email:', e.message);
-    return false;
-  }
+// ===== CPF VALIDATION =====
+function validarCPF(cpf) {
+  cpf = cpf.replace(/[^\d]/g,'');
+  if (cpf.length!==11||/^(\d)\1{10}$/.test(cpf)) return false;
+  let s=0; for(let i=0;i<9;i++) s+=parseInt(cpf[i])*(10-i);
+  let r=11-(s%11); if(r>=10)r=0; if(r!==parseInt(cpf[9])) return false;
+  s=0; for(let i=0;i<10;i++) s+=parseInt(cpf[i])*(11-i);
+  r=11-(s%11); if(r>=10)r=0; return r===parseInt(cpf[10]);
 }
 
-// ===== GERAR E SALVAR TICKET (helper central) =====
-async function gerarTicketDoPedido(pedido) {
-  const all = await getTickets();
-  const tNumber = getNextNumberSync(all);
-  const tCpf = (pedido.cpf||'').replace(/[^\d]/g,'');
-  const tHash = gerarQRHash(tNumber, tCpf, QR_SECRET);
+// ===== QR HASH =====
+function gerarQRHash(number, cpf) {
+  const data = number+':'+cpf+':'+QR_SECRET;
+  let h=0; for(let i=0;i<data.length;i++){const c=data.charCodeAt(i);h=((h<<5)-h)+c;h|=0;}
+  return Math.abs(h).toString(36).toUpperCase().padStart(8,'0');
+}
+
+// ===== GERAR TICKET (usado em todos os fluxos) =====
+async function gerarTicket(pedido) {
+  const number = await getNextTicketNumber();
+  const cpfLimpo = (pedido.cpf||'').replace(/[^\d]/g,'');
+  const qrHash = gerarQRHash(number, cpfLimpo);
   const ticket = {
-    id: require('crypto').randomUUID(),
-    number: tNumber,
-    qrHash: tHash,
-    qrCode: tNumber + ':' + tHash,
+    id: crypto.randomUUID(),
+    number, qrHash,
+    qrCode: number+':'+qrHash,
     name: pedido.name, email: pedido.email, cpf: pedido.cpf,
     type: pedido.type, typeKey: pedido.typeKey, price: pedido.price,
-    qty: pedido.qty, pagamento: pedido.pagamento || 'infinitepay',
-    used: false, createdAt: new Date().toISOString()
+    qty: pedido.qty||1,
+    pagamento: pedido.pagamento||'infinitepay',
+    used: false,
+    createdAt: new Date().toISOString()
   };
   await addTicket(ticket);
-  await updatePedido(pedido.number, { 
-    status: 'aprovado', 
-    ticketNumber: ticket.number, 
-    approvedAt: new Date().toISOString() 
+  await updatePedido(pedido.number, {
+    status:'aprovado',
+    ticketNumber: ticket.number,
+    approvedAt: new Date().toISOString()
   });
-  // Enviar email
-  const cfg = await getConfig();
-  await enviarEmailIngresso(ticket, cfg);
-  console.log('Ticket gerado:', ticket.number, 'para', ticket.email);
+  console.log(`[TICKET] Gerado #${ticket.number} para ${ticket.email} (pedido ${pedido.number})`);
   return ticket;
 }
 
-// HTTP helpers
-const MIME = { '.html':'text/html','.css':'text/css','.js':'application/javascript','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.ico':'image/x-icon','.json':'application/json' };
-
+// ===== HTTP HELPERS =====
+const MIME = {
+  '.html':'text/html','.css':'text/css','.js':'application/javascript',
+  '.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg',
+  '.webp':'image/webp','.ico':'image/x-icon','.json':'application/json'
+};
 function serveStatic(res, filePath) {
   const ext = path.extname(filePath);
   if (fs.existsSync(filePath)) {
-    res.writeHead(200, { 'Content-Type': MIME[ext]||'application/octet-stream' });
+    res.writeHead(200,{'Content-Type':MIME[ext]||'application/octet-stream'});
     fs.createReadStream(filePath).pipe(res);
   } else { res.writeHead(404); res.end('Not found'); }
 }
 function jsonRes(res, status, data) {
-  res.writeHead(status, { 'Content-Type':'application/json', 'Access-Control-Allow-Origin':'*' });
+  res.writeHead(status,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'});
   res.end(JSON.stringify(data));
 }
 function parseBody(req, cb) {
-  let body = '';
-  req.on('data', c => body += c);
-  req.on('end', () => { try { cb(JSON.parse(body)); } catch { cb({}); } });
+  let body=''; req.on('data',c=>body+=c); req.on('end',()=>{try{cb(JSON.parse(body));}catch{cb({});}});
 }
 function parseMultipart(req, cb) {
-  let chunks = [];
-  req.on('data', c => chunks.push(c));
-  req.on('end', () => {
-    const buffer = Buffer.concat(chunks);
-    const boundary = req.headers['content-type'].split('boundary=')[1];
-    if (!boundary) return cb({}, null);
-    const bBuf = Buffer.from('--' + boundary);
-    let parts = [], start = buffer.indexOf(bBuf) + bBuf.length + 2;
-    while (start < buffer.length) {
-      let end = buffer.indexOf(bBuf, start);
-      if (end === -1) break;
-      const part = buffer.slice(start, end - 2);
-      const hEnd = part.indexOf('\r\n\r\n');
-      const headers = part.slice(0, hEnd).toString();
-      const data = part.slice(hEnd + 4);
-      const nm = headers.match(/name="([^"]+)"/);
-      const fn = headers.match(/filename="([^"]+)"/);
-      if (nm) parts.push({ name: nm[1], filename: fn?.[1], data });
-      start = end + bBuf.length + 2;
+  let chunks=[]; req.on('data',c=>chunks.push(c)); req.on('end',()=>{
+    const buf=Buffer.concat(chunks);
+    const boundary=req.headers['content-type'].split('boundary=')[1];
+    if(!boundary) return cb({},null);
+    const bBuf=Buffer.from('--'+boundary);
+    let parts=[],start=buf.indexOf(bBuf)+bBuf.length+2;
+    while(start<buf.length){
+      let end=buf.indexOf(bBuf,start); if(end===-1)break;
+      const part=buf.slice(start,end-2); const hEnd=part.indexOf('\r\n\r\n');
+      const headers=part.slice(0,hEnd).toString(); const data=part.slice(hEnd+4);
+      const nm=headers.match(/name="([^"]+)"/); const fn=headers.match(/filename="([^"]+)"/);
+      if(nm) parts.push({name:nm[1],filename:fn?.[1],data});
+      start=end+bBuf.length+2;
     }
-    cb({}, parts.find(p => p.filename));
+    cb({}, parts.find(p=>p.filename));
   });
 }
 
-// SERVER
+// ===== SERVER =====
 const server = http.createServer(async (req, res) => {
-  const { pathname } = url.parse(req.url, true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+  const parsed = url.parse(req.url, true);
+  const pathname = parsed.pathname;
+  res.setHeader('Access-Control-Allow-Origin','*');
+  res.setHeader('Access-Control-Allow-Methods','GET,POST,PUT,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers','Content-Type');
+  if (req.method==='OPTIONS'){res.writeHead(204);return res.end();}
 
   try {
-    if (pathname === '/api/config' && req.method === 'GET') {
-      return jsonRes(res, 200, await getConfig());
-    }
-    if (pathname === '/api/config' && req.method === 'POST') {
-      return parseBody(req, async body => {
-        await setConfig(body);
-        jsonRes(res, 200, { ok: true });
+    // ===== STATUS =====
+    if (pathname==='/api/status') {
+      const tickets = await getTickets();
+      const pedidos = await getPedidos('all');
+      return jsonRes(res,200,{
+        ok:true, db:usingMongo?'mongodb':'json',
+        tickets:tickets.length,
+        pedidos:{
+          total:pedidos.length,
+          pendentes:pedidos.filter(p=>p.status==='pendente').length,
+          aprovados:pedidos.filter(p=>p.status==='aprovado').length,
+          rejeitados:pedidos.filter(p=>p.status==='rejeitado').length,
+        },
+        uptime:Math.round(process.uptime())+'s'
       });
     }
-    if (pathname === '/api/tickets' && req.method === 'GET') {
-      return jsonRes(res, 200, await getTickets());
+
+    // ===== CONFIG =====
+    if (pathname==='/api/config' && req.method==='GET') {
+      return jsonRes(res,200,await getConfig());
     }
-    // GET /api/tickets/buscar?cpf=xxx ou ?number=xxx ou ?email=xxx
-    if (pathname === '/api/tickets/buscar' && req.method === 'GET') {
-      const { cpf, number, email } = parsed.query;
-      const todos = await getTickets();
-      let resultado = [];
-      if (number) {
-        resultado = todos.filter(t => t.number === number.trim());
-      } else if (cpf) {
-        const cpfLimpo = cpf.replace(/[^\d]/g, '');
-        resultado = todos.filter(t => t.cpf && t.cpf.replace(/[^\d]/g, '') === cpfLimpo);
-      } else if (email) {
-        resultado = todos.filter(t => t.email && t.email.toLowerCase() === email.toLowerCase().trim());
-      }
-      return jsonRes(res, 200, resultado);
+    if (pathname==='/api/config' && req.method==='POST') {
+      return parseBody(req, async body=>{
+        const {_id,...upd}=body;
+        await setConfig(upd);
+        jsonRes(res,200,{ok:true});
+      });
     }
-    if (pathname === '/api/tickets' && req.method === 'POST') {
-      return parseBody(req, async body => {
-        // 1. Validar CPF
-        const cpfLimpo = (body.cpf||'').replace(/[^\d]/g, '');
-        if (!validarCPF(cpfLimpo)) {
-          return jsonRes(res, 400, { error: 'CPF inválido. Verifique e tente novamente.' });
-        }
-        // 2. Gerar ingresso com QR Code seguro
-        const number = await getNextNumber();
-        const qrHash = gerarQRHash(number, cpfLimpo, QR_SECRET);
+
+    // ===== TICKETS =====
+    if (pathname==='/api/tickets' && req.method==='GET') {
+      return jsonRes(res,200,await getTickets());
+    }
+    if (pathname==='/api/tickets/buscar' && req.method==='GET') {
+      const {cpf,number,email}=parsed.query;
+      const todos=await getTickets();
+      let r=[];
+      if (number) r=todos.filter(t=>t.number===number.replace('#','').trim());
+      else if (cpf){const c=cpf.replace(/[^\d]/g,'');r=todos.filter(t=>t.cpf&&t.cpf.replace(/[^\d]/g,'')===c);}
+      else if (email) r=todos.filter(t=>t.email&&t.email.toLowerCase()===email.toLowerCase().trim());
+      return jsonRes(res,200,r);
+    }
+    if (pathname==='/api/tickets' && req.method==='POST') {
+      return parseBody(req, async body=>{
+        const cpfLimpo=(body.cpf||'').replace(/[^\d]/g,'');
+        if (!validarCPF(cpfLimpo)) return jsonRes(res,400,{error:'CPF inválido.'});
+        const number = await getNextTicketNumber();
+        const qrHash = gerarQRHash(number, cpfLimpo);
         const ticket = {
-          id: crypto.randomUUID(),
-          number,
-          qrHash,
-          qrCode: number + ':' + qrHash, // conteúdo do QR Code
-          name: body.name, email: body.email,
-          cpf: cpfLimpo.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4'),
-          type: body.type, typeKey: body.typeKey, price: body.price,
-          qty: body.qty||1, pagamento: body.pagamento||'pix',
-          used: false, createdAt: new Date().toISOString()
+          id:crypto.randomUUID(), number, qrHash, qrCode:number+':'+qrHash,
+          name:body.name, email:body.email, cpf:cpfLimpo.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4'),
+          type:body.type, typeKey:body.typeKey, price:body.price,
+          qty:body.qty||1, pagamento:body.pagamento||'pix',
+          used:false, createdAt:new Date().toISOString()
         };
         await addTicket(ticket);
-        jsonRes(res, 201, ticket);
+        jsonRes(res,201,ticket);
       });
     }
-    if (pathname.startsWith('/api/validate/') && req.method === 'POST') {
-      const parts = pathname.split('/');
-      const number = parts[3];
-      // Aceita formato numero:hash ou só número
-      const [numPart, hashPart] = number.split(':');
-      const result = await validateTicket(numPart);
-      if (!result.found) return jsonRes(res, 404, { valid:false, message:'Ingresso não encontrado.' });
-      if (result.used) return jsonRes(res, 200, { valid:false, used:true, message:'Ingresso já utilizado.', ticket:result.ticket });
-      // Se QR Code enviou hash, valida autenticidade
-      if (hashPart && result.ticket.qrHash && hashPart !== result.ticket.qrHash) {
-        return jsonRes(res, 200, { valid:false, message:'QR Code inválido ou falsificado.', ticket:result.ticket });
-      }
-      return jsonRes(res, 200, { valid:true, message:'Ingresso válido! Entrada liberada.', ticket:result.ticket });
+    if (pathname.startsWith('/api/validate/') && req.method==='POST') {
+      const parts = pathname.split('/')[3].split(':');
+      const number = parts[0];
+      const hashSent = parts[1];
+      const ticket = await findTicketByNumber(number);
+      if (!ticket) return jsonRes(res,404,{valid:false,message:'Ingresso não encontrado.'});
+      if (ticket.used) return jsonRes(res,200,{valid:false,used:true,message:'Ingresso já utilizado.',ticket});
+      if (hashSent && ticket.qrHash && hashSent!==ticket.qrHash)
+        return jsonRes(res,200,{valid:false,message:'QR Code inválido.',ticket});
+      await markTicketUsed(number);
+      return jsonRes(res,200,{valid:true,message:'Válido! Entrada liberada.',ticket:{...ticket,used:true}});
     }
-    // GET /api/pedidos?status=pendente|aprovado|rejeitado|all
-    if (pathname === '/api/pedidos' && req.method === 'GET') {
-      const statusFilter = parsed.query.status || 'pendente';
-      const todos = await getPedidos();
-      const filtrados = statusFilter === 'all' 
-        ? todos 
-        : todos.filter(p => p.status === statusFilter);
-      return jsonRes(res, 200, filtrados);
+    if (pathname==='/api/reset' && req.method==='POST') {
+      return parseBody(req, async body=>{
+        if (body.senha!==ADMIN_SENHA) return jsonRes(res,401,{ok:false,error:'Senha incorreta.'});
+        await resetTickets();
+        jsonRes(res,200,{ok:true});
+      });
     }
-    // GET /api/pedidos/:number
-    if (pathname.startsWith('/api/pedidos/') && !pathname.includes('/aprovar') && !pathname.includes('/rejeitar') && req.method === 'GET') {
-      const number = pathname.split('/')[3];
-      const pedido = await getPedido(number);
-      if (!pedido) return jsonRes(res, 404, { error: 'Pedido não encontrado.' });
-      return jsonRes(res, 200, pedido);
+
+    // ===== PEDIDOS =====
+    if (pathname==='/api/pedidos' && req.method==='GET') {
+      const status = parsed.query.status||'pendente';
+      return jsonRes(res,200,await getPedidos(status));
     }
-    // POST /api/pedidos
-    if (pathname === '/api/pedidos' && req.method === 'POST') {
-      return parseBody(req, async body => {
-        // 1. Validar CPF
-        const cpfLimpo = (body.cpf||'').replace(/[^\d]/g, '');
-        if (!validarCPF(cpfLimpo)) {
-          return jsonRes(res, 400, { error: 'CPF inválido. Verifique e tente novamente.' });
-        }
+    if (pathname==='/api/pedidos' && req.method==='POST') {
+      return parseBody(req, async body=>{
+        const cpfLimpo=(body.cpf||'').replace(/[^\d]/g,'');
+        if (!validarCPF(cpfLimpo)) return jsonRes(res,400,{error:'CPF inválido.'});
         const pedido = {
           number: await getNextPedidoNumber(),
-          name: body.name, email: body.email,
-          cpf: cpfLimpo.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4'),
-          type: body.type, typeKey: body.typeKey, price: body.price,
-          qty: body.qty || 1, status: 'pendente',
-          createdAt: new Date().toISOString()
+          name:body.name, email:body.email,
+          cpf:cpfLimpo.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4'),
+          type:body.type, typeKey:body.typeKey, price:body.price,
+          qty:body.qty||1, pagamento:body.pagamento||'pix',
+          status:'pendente', createdAt:new Date().toISOString()
         };
         await addPedido(pedido);
-        jsonRes(res, 201, pedido);
+        jsonRes(res,201,pedido);
       });
     }
-    // POST /api/pedidos/:number/aprovar
-    if (pathname.includes('/aprovar') && pathname.startsWith('/api/pedidos/') && req.method === 'POST') {
+    if (pathname.match(/\/api\/pedidos\/[^/]+$/) && req.method==='GET') {
       const number = pathname.split('/')[3];
       const pedido = await getPedido(number);
-      if (!pedido) return jsonRes(res, 404, { error: 'Pedido não encontrado.' });
-      if (pedido.status === 'aprovado') return jsonRes(res, 200, { ok: false, error: 'Pedido já aprovado. Ingresso #' + pedido.ticketNumber });
-      const ticket = await gerarTicketDoPedido({ ...pedido, pagamento: pedido.pagamento || 'manual' });
-      console.log('Aprovado manualmente:', number, '-> Ingresso:', ticket.number);
-      return jsonRes(res, 200, { ok: true, ticket });
+      if (!pedido) return jsonRes(res,404,{error:'Pedido não encontrado.'});
+      return jsonRes(res,200,pedido);
     }
-    // POST /api/pedidos/:number/rejeitar
-    if (pathname.includes('/rejeitar') && pathname.startsWith('/api/pedidos/') && req.method === 'POST') {
+    if (pathname.includes('/aprovar') && pathname.startsWith('/api/pedidos/') && req.method==='POST') {
       const number = pathname.split('/')[3];
-      await updatePedido(number, { status: 'rejeitado', rejectedAt: new Date().toISOString() });
-      return jsonRes(res, 200, { ok: true });
+      const pedido = await getPedido(number);
+      if (!pedido) return jsonRes(res,404,{error:'Pedido não encontrado: '+number});
+      if (pedido.status==='aprovado') {
+        const t=await findTicketByNumber(pedido.ticketNumber);
+        return jsonRes(res,200,{ok:false,error:'Já aprovado. Ingresso #'+pedido.ticketNumber,ticket:t});
+      }
+      const ticket = await gerarTicket({...pedido,pagamento:pedido.pagamento||'manual'});
+      return jsonRes(res,200,{ok:true,ticket});
+    }
+    if (pathname.includes('/rejeitar') && pathname.startsWith('/api/pedidos/') && req.method==='POST') {
+      const number = pathname.split('/')[3];
+      await updatePedido(number,{status:'rejeitado',rejectedAt:new Date().toISOString()});
+      return jsonRes(res,200,{ok:true});
     }
 
-    // POST /api/webhook/infinitepay — confirmação automática de pagamento
-    if (pathname === '/api/webhook/infinitepay' && req.method === 'POST') {
-      return parseBody(req, async body => {
+    // ===== WEBHOOK INFINITEPAY =====
+    if (pathname==='/api/webhook/infinitepay' && req.method==='POST') {
+      return parseBody(req, async body=>{
         try {
-          console.log('Webhook recebido:', JSON.stringify(body).slice(0,300));
-          // Aceita varios formatos de status da InfinitePay
-          const status = (body.status || body.payment_status || body.charge?.status || '').toLowerCase();
-          const orderId = body.order_id || body.reference || body.external_id || 
-                         body.metadata?.pedido || body.charge?.metadata?.pedido || '';
-          
-          const statusAprovado = ['approved','paid','succeeded','active','captured','complete','completed'].includes(status);
-          
-          if (statusAprovado && orderId) {
-            const pedido = await getPedido(orderId);
-            if (pedido && pedido.status === 'pendente') {
-              const ticket = await gerarTicketDoPedido(pedido);
-              console.log('Webhook: ingresso gerado', ticket.number, 'para', ticket.email);
+          console.log('[WEBHOOK] Recebido:', JSON.stringify(body).slice(0,500));
+          const status = (
+            body.status||body.payment_status||body.charge?.status||
+            body.data?.status||body.event||body.type||''
+          ).toLowerCase();
+          const ref = (
+            body.reference||body.external_id||body.order_id||
+            body.metadata?.pedido||body.charge?.metadata?.pedido||
+            body.data?.reference||body.data?.external_id||
+            body.charge?.reference||''
+          ).toString().trim();
+          const aprovado = ['approved','paid','succeeded','active','captured',
+            'complete','completed','charge.paid','payment_approved'].some(s=>status.includes(s));
+
+          console.log(`[WEBHOOK] status="${status}" ref="${ref}" aprovado=${aprovado}`);
+
+          if (aprovado && ref) {
+            const pedido = await getPedido(ref);
+            if (pedido && pedido.status==='pendente') {
+              const ticket = await gerarTicket(pedido);
+              console.log(`[WEBHOOK] Ingresso gerado automaticamente: #${ticket.number}`);
+            } else {
+              console.log(`[WEBHOOK] Pedido não encontrado ou já processado: ${ref}`);
             }
-          } else {
-            console.log('Webhook ignorado: status=', status, 'orderId=', orderId);
           }
-          jsonRes(res, 200, { ok: true });
+          jsonRes(res,200,{ok:true,received:true});
         } catch(e) {
-          console.error('Webhook error:', e.message);
-          jsonRes(res, 200, { ok: true });
+          console.error('[WEBHOOK] Erro:', e.message);
+          jsonRes(res,200,{ok:true});
         }
       });
     }
 
-    if (pathname === '/api/reset' && req.method === 'POST') {
-      return parseBody(req, async body => {
-        if (body.senha !== ADMIN_SENHA) return jsonRes(res, 401, { ok:false, error:'Senha incorreta.' });
-        await resetTickets();
-        jsonRes(res, 200, { ok:true });
+    // ===== UPLOAD BANNER =====
+    if (pathname==='/api/upload-bg' && req.method==='POST') {
+      return parseMultipart(req, async (fields, file)=>{
+        if (!file) return jsonRes(res,400,{error:'Nenhum arquivo.'});
+        const ext=path.extname(file.filename)||'.jpg';
+        const filename='bg_'+Date.now()+ext;
+        fs.writeFileSync(path.join(UPLOADS_DIR,filename),file.data);
+        const bgPath='/images/uploads/'+filename;
+        await setConfig({bgImage:bgPath});
+        jsonRes(res,200,{ok:true,path:bgPath});
       });
     }
-    if (pathname === '/api/upload-bg' && req.method === 'POST') {
-      return parseMultipart(req, async (fields, file) => {
-        if (!file) return jsonRes(res, 400, { error:'Nenhum arquivo.' });
-        const ext = path.extname(file.filename)||'.jpg';
-        const filename = 'bg_' + Date.now() + ext;
-        fs.writeFileSync(path.join(UPLOADS_DIR, filename), file.data);
-        const bgPath = '/images/uploads/' + filename;
-        await setConfig({ bgImage: bgPath });
-        jsonRes(res, 200, { ok:true, path:bgPath });
-      });
-    }
-    if (pathname === '/') return serveStatic(res, path.join(__dirname, 'public', 'index.html'));
-    if (pathname.startsWith('/images/uploads/')) return serveStatic(res, path.join(UPLOADS_DIR, path.basename(pathname)));
-    if (pathname.startsWith('/images/')) return serveStatic(res, path.join(__dirname, 'public', 'images', path.basename(pathname)));
-    serveStatic(res, path.join(__dirname, 'public', pathname.slice(1)));
+
+    // ===== STATIC FILES =====
+    if (pathname==='/') return serveStatic(res,path.join(__dirname,'public','index.html'));
+    if (pathname.startsWith('/images/uploads/')) return serveStatic(res,path.join(UPLOADS_DIR,path.basename(pathname)));
+    if (pathname.startsWith('/images/')) return serveStatic(res,path.join(__dirname,'public','images',path.basename(pathname)));
+    serveStatic(res,path.join(__dirname,'public',pathname.slice(1)));
+
   } catch(err) {
-    console.error('Erro:', err.message);
-    jsonRes(res, 500, { error: err.message });
+    console.error('[SERVER] Erro:', err.message);
+    jsonRes(res,500,{error:err.message});
   }
 });
 
-// START - servidor inicia imediatamente, MongoDB conecta em paralelo
-server.listen(PORT, () => {
-  console.log(`GalzGames Ingressos rodando em http://localhost:${PORT}`);
-  console.log(`Modo: ${MONGO_URI ? 'MongoDB' : 'JSON local'}`);
-});
-
-// Conecta MongoDB depois de subir (nao bloqueia o start)
-connectMongo().catch(e => console.log('MongoDB:', e.message));
+// ===== START =====
+server.listen(PORT, ()=>console.log(`\nGalzGames Ingressos rodando em http://localhost:${PORT}\nModo: ${MONGO_URI?'MongoDB':'JSON local'}\n`));
+connectMongo().catch(e=>console.log('MongoDB:', e.message));
