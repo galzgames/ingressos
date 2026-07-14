@@ -1,6 +1,0 @@
-node_modules/
-data/tickets.json
-data/config.json
-public/images/uploads/
-.env
-*.log
