@@ -71,7 +71,6 @@ body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;mi
 .menu-item:hover{background:rgba(255,215,0,0.08);color:var(--accent);padding-left:24px}
 .menu-item.active-item{background:rgba(255,215,0,0.12);color:var(--accent)}
 .menu-item-icon{font-size:18px;width:26px;text-align:center;flex-shrink:0}
-.menu-item-label{}
 .menu-item-badge{margin-left:auto;background:var(--accent);color:#000;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;font-family:'Orbitron',monospace}
 /* Topbar direita - apenas info do evento */
 .topbar-right{display:flex;align-items:center;gap:8px}
@@ -250,14 +249,12 @@ body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;mi
 
 .ticket-body{background:#fff;padding:20px 24px}
 .ticket-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
-.tk-field{}
 .tk-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;font-weight:600}
 .tk-value{font-size:14px;font-weight:700;color:#111;margin-top:2px}
 .ticket-bottom-row{
   display:flex;justify-content:space-between;
   align-items:center;border-top:1px solid #eee;padding-top:16px;
 }
-.ticket-number-block{}
 .tn-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;font-weight:600}
 .tn-value{font-family:'Share Tech Mono',monospace;font-size:22px;font-weight:700;color:#111}
 #qr-canvas{border-radius:8px;background:#fff}
@@ -608,6 +605,11 @@ canvas#cam-canvas{display:none}
     <span class="menu-item-label">Validar Ingresso</span>
     <span class="menu-item-badge">🔒</span>
   </button>
+  <button class="menu-item" id="mi-gratuitos" onclick="navTo('gratuitos')">
+    <span class="menu-item-icon">🎁</span>
+    <span class="menu-item-label">Ingressos Gratuitos</span>
+    <span class="menu-item-badge">🔒</span>
+  </button>
   <button class="menu-item" id="mi-admin" onclick="navTo('admin')">
     <span class="menu-item-icon">⚙️</span>
     <span class="menu-item-label">Painel Admin</span>
@@ -806,6 +808,48 @@ canvas#cam-canvas{display:none}
   </div>
 </div>
 
+<!-- INGRESSOS GRATUITOS -->
+<div id="page-gratuitos" class="page">
+  <div class="admin-grid">
+    <div class="admin-card">
+      <h3>🎁 Emitir Ingressos Gratuitos</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nome Completo</label>
+          <input type="text" id="free-name" placeholder="Nome do convidado" />
+        </div>
+        <div class="form-group">
+          <label>E-mail</label>
+          <input type="email" id="free-email" placeholder="convidado@email.com" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>CPF</label>
+          <input type="text" id="free-cpf" placeholder="000.000.000-00" maxlength="14" />
+        </div>
+        <div class="form-group">
+          <label>Quantidade</label>
+          <div class="qty-wrap">
+            <button class="qty-btn" type="button" onclick="changeFreeQty(-1)">−</button>
+            <span class="qty-num" id="free-qty-num">1</span>
+            <button class="qty-btn" type="button" onclick="changeFreeQty(1)">+</button>
+          </div>
+        </div>
+      </div>
+      <button class="btn-generate" onclick="emitirIngressoGratuito()">🎟 GERAR INGRESSO GRATUITO</button>
+      <div class="admin-note" style="margin-top:14px;color:var(--muted);font-size:13px;line-height:1.5">
+        Esta ação gera um ingresso com valor R$ 0,00 e o mesmo QR já utilizado no fluxo normal de check-in.
+      </div>
+    </div>
+
+    <div class="admin-card">
+      <h3>📋 Últimos Gratuitos Emitidos</h3>
+      <div id="free-ticket-list" style="display:flex;flex-direction:column;gap:10px"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ADMIN -->
 <div id="page-admin" class="page">
   <div class="admin-grid">
@@ -830,8 +874,10 @@ canvas#cam-canvas{display:none}
       <div class="stat-row"><span class="stat-label">Normal</span><span class="stat-val" id="st-normal">0</span></div>
       <div class="stat-row"><span class="stat-label">VIP</span><span class="stat-val" id="st-vip">0</span></div>
       <div class="stat-row"><span class="stat-label">Meia-Entrada</span><span class="stat-val" id="st-meia">0</span></div>
-      <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(233,69,96,0.2)">
-        <button class="btn-reset" onclick="abrirReset()">🗑 RESETAR TODOS OS INGRESSOS</button>
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(233,69,96,0.2);display:flex;flex-direction:column;gap:10px">
+        <button class="btn-reset" onclick="abrirReset('all')">🗑 RESETAR TODOS OS INGRESSOS</button>
+        <button class="btn-reset" onclick="abrirReset('free')">🎁 RESETAR INGRESSOS GRATUITOS</button>
+        <button class="btn-reset" onclick="abrirReset('pedidos')">🧹 RESETAR PEDIDOS</button>
       </div>
     </div>
 
@@ -1080,7 +1126,7 @@ function navTo(id) {
 }
 
 function syncMenu(id) {
-  ['home','meu-ingresso','validar','admin'].forEach(p => {
+  ['home','meu-ingresso','validar','gratuitos','admin'].forEach(p => {
     const el = document.getElementById('mi-' + p);
     if (el) el.classList.toggle('active-item', p === id);
   });
@@ -1090,12 +1136,18 @@ function syncMenu(id) {
 }
 
 function showPage(id) {
-  if ((id === 'admin' || id === 'validar') && !adminLogado) {
+  if ((id === 'admin' || id === 'validar' || id === 'gratuitos') && !adminLogado) {
     document.getElementById('admin-login-bg').dataset.target = id;
     document.getElementById('admin-senha-input').value = '';
     document.getElementById('admin-login-err').style.display = 'none';
     const sub = document.getElementById('admin-login-sub');
-    if (sub) sub.textContent = id === 'validar' ? 'Área restrita — Validação de Ingressos' : 'Digite a senha de administrador';
+    if (sub) {
+      sub.textContent = id === 'validar'
+        ? 'Área restrita — Validação de Ingressos'
+        : id === 'gratuitos'
+          ? 'Área restrita — Emissão de Ingressos Gratuitos'
+          : 'Digite a senha de administrador';
+    }
     document.getElementById('admin-login-bg').style.display = 'flex';
     return;
   }
@@ -1104,6 +1156,7 @@ function showPage(id) {
   currentPageId = id;
   syncMenu(id);
   if (id === 'admin') { loadTickets(); applyPagamento(); }
+  if (id === 'gratuitos') { renderFreeTickets(); }
 }
 
 function tentarLoginAdmin() {
@@ -1123,7 +1176,26 @@ function tentarLoginAdmin() {
   }
 }
 
-function abrirReset() {
+let resetTarget = 'all';
+
+function abrirReset(target = 'all') {
+  resetTarget = target;
+  const title = document.querySelector('#reset-modal-bg h2');
+  const text = document.querySelector('#reset-modal-bg .reset-warn');
+  const btn = document.querySelector('#reset-modal-bg .reset-confirm-btn');
+  if (title) {
+    title.textContent = target === 'free' ? 'Resetar Ingressos Gratuitos' : target === 'pedidos' ? 'Resetar Pedidos' : 'Resetar Ingressos';
+  }
+  if (text) {
+    text.innerHTML = target === 'free'
+      ? '<strong>Atenção!</strong> Apenas os ingressos marcados como <strong>gratuitos</strong> serão <strong>apagados</strong>. Os demais ingressos continuarão intactos.'
+      : target === 'pedidos'
+        ? '<strong>Atenção!</strong> Todos os <strong>pedidos pendentes/aprovados/rejeitados</strong> serão <strong>removidos</strong> para deixar o sistema limpo para o próximo evento.'
+        : '<strong>Atenção!</strong> Todos os ingressos emitidos serão <strong>permanentemente apagados</strong>. O contador voltará ao início. Essa ação é irreversível.';
+  }
+  if (btn) {
+    btn.textContent = target === 'free' ? '🎁 SIM, APAGAR GRATUITOS' : target === 'pedidos' ? '🧹 SIM, LIMPAR PEDIDOS' : '🗑 SIM, APAGAR TUDO';
+  }
   document.getElementById('reset-senha-input').value = '';
   document.getElementById('reset-err').style.display = 'none';
   document.getElementById('reset-modal-bg').style.display = 'flex';
@@ -1142,16 +1214,26 @@ async function confirmarReset() {
     return;
   }
   try {
-    const r = await fetch('/api/reset', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ senha }) });
+    const endpoint = resetTarget === 'free' ? '/api/reset-free' : resetTarget === 'pedidos' ? '/api/reset-pedidos' : '/api/reset';
+    const r = await fetch(endpoint, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ senha }) });
     const d = await r.json();
     if (d.ok) {
-      allTickets = [];
-      currentTicket = null;
+      if (resetTarget === 'all') {
+        allTickets = [];
+        currentTicket = null;
+        document.getElementById('no-ticket').style.display = 'block';
+        document.getElementById('ticket-display').style.display = 'none';
+      }
+      if (resetTarget === 'free') {
+        await loadTickets();
+        renderFreeTickets();
+      }
+      if (resetTarget === 'pedidos') {
+        await loadPendentes();
+      }
       fecharReset();
       updateAdminStats();
-      document.getElementById('no-ticket').style.display = 'block';
-      document.getElementById('ticket-display').style.display = 'none';
-      showToast('Todos os ingressos foram apagados!');
+      showToast(resetTarget === 'free' ? 'Ingressos gratuitos removidos!' : resetTarget === 'pedidos' ? 'Pedidos limpos!' : 'Todos os ingressos foram apagados!');
     } else {
       document.getElementById('reset-err').textContent = '❌ ' + (d.error || 'Erro no servidor.');
       document.getElementById('reset-err').style.display = 'block';
@@ -1173,12 +1255,95 @@ function changeQty(d) {
   document.getElementById('qty-num').textContent = qty;
 }
 
+let freeQty = 1;
+function changeFreeQty(d) {
+  freeQty = Math.max(1, Math.min(10, freeQty + d));
+  document.getElementById('free-qty-num').textContent = freeQty;
+}
+
+function renderFreeTickets() {
+  const list = document.getElementById('free-ticket-list');
+  if (!list) return;
+  const gratuitos = (allTickets || []).filter(t => t.typeKey === 'gratuito' || t.pagamento === 'gratuito' || t.price === 'R$ 0,00');
+  if (!gratuitos.length) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:10px 0">Nenhum ingresso gratuito emitido.</div>';
+    return;
+  }
+  list.innerHTML = gratuitos.slice(-6).reverse().map(t => `
+    <div class="tl-row">
+      <span class="tl-num">#${t.number}</span>
+      <span class="tl-name">${t.name}</span>
+      <span class="tl-type">${t.type || 'Gratuito'}</span>
+      <span class="badge valid">${t.price || 'R$ 0,00'}</span>
+    </div>
+  `).join('');
+}
+
+async function emitirIngressoGratuito() {
+  const name = document.getElementById('free-name').value.trim();
+  const email = document.getElementById('free-email').value.trim();
+  const cpf = document.getElementById('free-cpf').value.trim();
+  if (!name || !email || !cpf) {
+    showToast('Preencha nome, e-mail e CPF.');
+    return;
+  }
+  try {
+    const payload = {
+      name,
+      email,
+      cpf,
+      type: 'Ingresso Gratuito',
+      typeKey: 'gratuito',
+      price: 'R$ 0,00',
+      qty: 1,
+      pagamento: 'gratuito'
+    };
+
+    for (let i = 0; i < freeQty; i++) {
+      const r = await fetch(API + '/api/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        showToast(data.error || 'Não foi possível emitir o ingresso.');
+        return;
+      }
+    }
+
+    await loadTickets();
+    renderFreeTickets();
+    document.getElementById('free-name').value = '';
+    document.getElementById('free-email').value = '';
+    document.getElementById('free-cpf').value = '';
+    freeQty = 1;
+    document.getElementById('free-qty-num').textContent = freeQty;
+    showToast('Ingresso gratuito emitido com sucesso!');
+  } catch {
+    showToast('Erro ao emitir ingresso gratuito.');
+  }
+}
+
 // CPF mask
 document.getElementById('f-cpf').addEventListener('input', function() {
   let v = this.value.replace(/\D/g,'').slice(0,11);
   v = v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
   this.value = v;
   // Validação visual em tempo real
+  const cpfLimpo = v.replace(/\D/g,'');
+  if (cpfLimpo.length === 11) {
+    const valido = validarCPFfrontend(cpfLimpo);
+    this.style.borderColor = valido ? 'var(--success)' : '#e94560';
+  } else {
+    this.style.borderColor = '';
+  }
+});
+
+document.getElementById('free-cpf').addEventListener('input', function() {
+  let v = this.value.replace(/\D/g,'').slice(0,11);
+  v = v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+  this.value = v;
   const cpfLimpo = v.replace(/\D/g,'');
   if (cpfLimpo.length === 11) {
     const valido = validarCPFfrontend(cpfLimpo);

@@ -116,6 +116,24 @@ async function resetTickets() {
     writeJSON(DATA_FILE, []);
   }
 }
+async function resetFreeTickets() {
+  if (usingMongo && db) {
+    await db.collection('tickets').deleteMany({
+      $or: [
+        { typeKey: 'gratuito' },
+        { pagamento: 'gratuito' },
+        { price: 'R$ 0,00' }
+      ]
+    });
+  } else {
+    const tickets = readJSON(DATA_FILE) || [];
+    writeJSON(DATA_FILE, tickets.filter(ticket =>
+      ticket.typeKey !== 'gratuito' &&
+      ticket.pagamento !== 'gratuito' &&
+      ticket.price !== 'R$ 0,00'
+    ));
+  }
+}
 
 // ===== PEDIDOS =====
 const PEDIDOS_FILE = path.join(__dirname, 'data', 'pedidos.json');
@@ -135,6 +153,13 @@ async function addPedido(pedido) {
 async function getPedido(number) {
   if (usingMongo && db) { const p = await db.collection('pedidos').findOne({ number }); if(p){const{_id,...r}=p;return r;} return null; }
   const p = readJSON(PEDIDOS_FILE)||[]; return p.find(x=>x.number===number)||null;
+}
+async function resetPedidos() {
+  if (usingMongo && db) {
+    await db.collection('pedidos').deleteMany({});
+  } else {
+    writeJSON(PEDIDOS_FILE, []);
+  }
 }
 async function updatePedido(number, update) {
   if (usingMongo && db) { await db.collection('pedidos').updateOne({ number }, { $set: update }); }
@@ -425,6 +450,20 @@ const server = http.createServer(async (req, res) => {
       return parseBody(req, async body => {
         if (body.senha !== ADMIN_SENHA) return jsonRes(res, 401, { ok:false, error:'Senha incorreta.' });
         await resetTickets();
+        jsonRes(res, 200, { ok:true });
+      });
+    }
+    if (pathname === '/api/reset-free' && req.method === 'POST') {
+      return parseBody(req, async body => {
+        if (body.senha !== ADMIN_SENHA) return jsonRes(res, 401, { ok:false, error:'Senha incorreta.' });
+        await resetFreeTickets();
+        jsonRes(res, 200, { ok:true });
+      });
+    }
+    if (pathname === '/api/reset-pedidos' && req.method === 'POST') {
+      return parseBody(req, async body => {
+        if (body.senha !== ADMIN_SENHA) return jsonRes(res, 401, { ok:false, error:'Senha incorreta.' });
+        await resetPedidos();
         jsonRes(res, 200, { ok:true });
       });
     }

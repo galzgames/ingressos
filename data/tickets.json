@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "id": "9877202e-833d-408e-a1e2-00d2eb3ec5b2",
+    "number": "100001",
+    "qrHash": "00P9DVG6",
+    "qrCode": "100001:00P9DVG6",
+    "name": "Teste Revisao",
+    "email": "teste@teste.com",
+    "cpf": "123.456.789-09",
+    "type": "Ingresso Gratuito",
+    "typeKey": "gratuito",
+    "price": "R$ 0,00",
+    "qty": 1,
+    "pagamento": "gratuito",
+    "used": false,
+    "createdAt": "2026-07-14T22:57:53.022Z"
+  }
+]
