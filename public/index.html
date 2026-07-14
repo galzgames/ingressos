@@ -560,171 +560,6 @@ canvas#cam-canvas{display:none}
 .ip-aguard-pedido{font-family:'Share Tech Mono',monospace;font-size:20px;color:#00c896;background:rgba(0,200,150,0.1);border:1px solid rgba(0,200,150,0.3);border-radius:10px;padding:10px 20px;display:inline-block;margin-bottom:16px;letter-spacing:2px}
 .btn-ip-verificar{width:100%;background:rgba(255,215,0,0.1);border:1px solid var(--accent);color:var(--accent);border-radius:10px;padding:12px;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all 0.2s;margin-bottom:8px}
 .btn-ip-verificar:hover{background:rgba(255,215,0,0.2)}
-
-/* ===== BUSCA DE INGRESSO ===== */
-.busca-box{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:16px;padding:22px;margin-bottom:20px}
-.busca-title{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.busca-tabs{display:flex;gap:6px;margin-bottom:14px}
-.busca-tab{flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;text-transform:uppercase}
-.busca-tab.active{background:rgba(255,215,0,0.15);border-color:var(--accent);color:var(--accent)}
-.busca-input{background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:10px;padding:12px 16px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:16px;width:100%;outline:none;transition:border 0.2s;letter-spacing:2px;margin-bottom:10px}
-.busca-input:focus{border-color:var(--accent)}
-.btn-buscar{width:100%;background:linear-gradient(135deg,var(--accent),#ffb300);color:#000;border:none;border-radius:10px;padding:12px;font-family:'Orbitron',monospace;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all 0.2s}
-.btn-buscar:hover{opacity:0.9;transform:translateY(-1px)}
-.busca-resultados{margin-top:14px}
-.busca-resultado-card{background:rgba(0,200,150,0.06);border:1px solid rgba(0,200,150,0.2);border-radius:10px;padding:14px;margin-bottom:8px;cursor:pointer;transition:all 0.2s}
-.busca-resultado-card:hover{background:rgba(0,200,150,0.12);border-color:var(--success)}
-.br-num{font-family:'Share Tech Mono',monospace;font-size:16px;font-weight:700;color:var(--success)}
-.br-nome{font-size:14px;color:var(--text);font-weight:600;margin:4px 0 2px}
-.br-info{font-size:12px;color:var(--muted)}
-.br-status-usado{color:#e94560;font-weight:700}
-.br-status-valido{color:var(--success);font-weight:700}
-
-/* ===== IMPRESSAO PROFISSIONAL ===== */
-@media print {
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
-  .topbar, .busca-box, .ticket-actions, .toast, #admin-login-bg,
-  #reset-modal-bg, #ip-modal-bg, #pix-modal-bg, .menu-overlay,
-  .admin-tabs, .no-ticket { display: none !important; }
-  .page { display: none !important; }
-  #page-meu-ingresso { display: block !important; padding: 0 !important; }
-  .ticket-wrap { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
-  #ticket-display { display: block !important; }
-  .print-ticket-area {
-    width: 100% !important;
-    max-width: 100% !important;
-    page-break-inside: avoid !important;
-  }
-}
-
-/* ===== MODAL DE IMPRESSAO ===== */
-#print-modal-bg {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.92);
-  z-index: 99999; display: none; align-items: center;
-  justify-content: center; padding: 16px;
-}
-#print-modal-bg.open { display: flex; }
-.print-modal {
-  background: #fff; border-radius: 16px; overflow: hidden;
-  width: 100%; max-width: 480px;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.8);
-}
-.print-modal-header {
-  background: linear-gradient(135deg, #1a1a2e, #0d1f3c);
-  padding: 16px 20px; display: flex; align-items: center;
-  justify-content: space-between;
-}
-.print-modal-title {
-  font-family: 'Orbitron', monospace; font-size: 14px;
-  font-weight: 700; color: #ffd700;
-}
-.print-modal-close {
-  background: transparent; border: none; color: #8892a4;
-  font-size: 20px; cursor: pointer; padding: 0 4px;
-}
-/* INGRESSO PARA IMPRESSAO */
-#print-area {
-  background: #fff;
-  font-family: Arial, sans-serif;
-  color: #111;
-}
-.pa-top {
-  position: relative;
-  height: 180px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-}
-.pa-bg {
-  position: absolute; inset: 0;
-  width: 100%; height: 100%;
-  object-fit: cover; display: block;
-}
-.pa-overlay {
-  position: absolute; inset: 0;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.75));
-}
-.pa-top-content {
-  position: relative; z-index: 1;
-  padding: 16px 20px;
-  display: flex; align-items: center; gap: 12px;
-}
-.pa-logo {
-  width: 48px; height: 48px; border-radius: 50%;
-  object-fit: cover; border: 2px solid #ffd700;
-  flex-shrink: 0;
-}
-.pa-evento { flex: 1; }
-.pa-evento-nome {
-  font-family: 'Orbitron', monospace; font-size: 18px;
-  font-weight: 900; color: #fff;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.8);
-  margin-bottom: 3px;
-}
-.pa-evento-data { font-size: 12px; color: rgba(255,255,255,0.85); }
-
-.pa-perf {
-  display: flex; align-items: center;
-  background: #fff; margin: 0;
-}
-.pa-perf-dot {
-  width: 22px; height: 22px; border-radius: 50%;
-  background: #1a1a2e; flex-shrink: 0;
-}
-.pa-perf-line {
-  flex: 1; border-top: 2px dashed #ccc;
-}
-
-.pa-body { padding: 16px 20px; background: #fff; }
-.pa-grid {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 12px; margin-bottom: 14px;
-}
-.pa-field {}
-.pa-label {
-  font-size: 9px; color: #888; text-transform: uppercase;
-  letter-spacing: 0.5px; font-weight: 700; margin-bottom: 2px;
-}
-.pa-value { font-size: 13px; font-weight: 700; color: #111; }
-
-.pa-bottom {
-  display: flex; justify-content: space-between;
-  align-items: center; border-top: 1px solid #eee;
-  padding-top: 12px;
-}
-.pa-numero {}
-.pa-num-label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
-.pa-num-val {
-  font-family: 'Courier New', monospace; font-size: 20px;
-  font-weight: 700; color: #111; letter-spacing: 2px;
-}
-.pa-footer {
-  background: #f8f8f8; padding: 10px 20px;
-  text-align: center; font-size: 10px; color: #888;
-  border-top: 1px solid #eee;
-}
-/* Botoes do modal */
-.print-modal-btns {
-  display: flex; gap: 10px; padding: 14px 20px;
-  background: #f8f8f8; border-top: 1px solid #eee;
-}
-.btn-imprimir-modal {
-  flex: 1; background: #1a1a2e; color: #ffd700;
-  border: none; border-radius: 8px; padding: 12px;
-  font-family: 'Orbitron', monospace; font-size: 11px;
-  font-weight: 700; cursor: pointer; letter-spacing: 0.5px;
-  transition: all 0.2s;
-}
-.btn-imprimir-modal:hover { background: #0d1f3c; }
-.btn-fechar-print {
-  background: transparent; color: #888;
-  border: 1px solid #ddd; border-radius: 8px; padding: 12px 20px;
-  font-family: Arial, sans-serif; font-size: 13px;
-  cursor: pointer; transition: all 0.2s;
-}
-.btn-fechar-print:hover { border-color: #e94560; color: #e94560; }
 </style>
 </head>
 <body>
@@ -861,21 +696,6 @@ canvas#cam-canvas{display:none}
 
 <!-- MEU INGRESSO -->
 <div id="page-meu-ingresso" class="page">
-
-  <!-- BUSCA DE INGRESSO -->
-  <div class="busca-box" style="max-width:440px;margin:0 auto 20px">
-    <div class="busca-title">🔍 Buscar Ingresso</div>
-    <div class="busca-tabs">
-      <button class="busca-tab active" id="btab-num" onclick="setBuscaTab('num')">Nº do Ingresso</button>
-      <button class="busca-tab" id="btab-cpf" onclick="setBuscaTab('cpf')">CPF</button>
-      <button class="busca-tab" id="btab-email" onclick="setBuscaTab('email')">E-mail</button>
-    </div>
-    <input class="busca-input" id="busca-input" type="text" placeholder="Digite aqui..."
-      onkeydown="if(event.key==='Enter') buscarIngresso()" />
-    <button class="btn-buscar" onclick="buscarIngresso()">🔍 BUSCAR MEU INGRESSO</button>
-    <div class="busca-resultados" id="busca-resultados"></div>
-  </div>
-
   <div class="ticket-wrap">
     <div id="no-ticket" class="no-ticket">
       <div class="no-ticket-icon">🎮</div>
@@ -927,7 +747,7 @@ canvas#cam-canvas{display:none}
         </div>
       </div>
       <div class="ticket-actions">
-        <button class="btn-secondary" onclick="abrirImpressao()">🖨 Imprimir</button>
+        <button class="btn-secondary" onclick="window.print()">🖨 Imprimir</button>
         <button class="btn-secondary" id="btn-copy" onclick="copiarCodigo()">📋 Copiar Código</button>
       </div>
     </div>
@@ -1119,10 +939,8 @@ canvas#cam-canvas{display:none}
     </div>
 
     <div class="admin-card">
-      <h3>🎟 Ingressos Emitidos <span id="badge-tickets" style="background:rgba(255,215,0,0.2);color:var(--accent);font-size:11px;padding:2px 8px;border-radius:20px;font-family:'Share Tech Mono',monospace;margin-left:6px">0</span>
-        <button onclick="loadTickets();updateAdminStats();" style="background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:10px;padding:3px 8px;cursor:pointer;margin-left:6px;font-family:'Rajdhani',sans-serif">🔄</button>
-      </h3>
-      <div class="ticket-list-scroll" id="ticket-list" style="max-height:320px">
+      <h3>🎟 Ingressos Emitidos</h3>
+      <div class="ticket-list-scroll" id="ticket-list">
         <div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Nenhum ingresso</div>
       </div>
     </div>
@@ -1485,11 +1303,7 @@ async function irParaCheckout() {
 
   // Adiciona referência do pedido na URL de retorno
   const baseLink = IP_LINKS[selType] || IP_LINKS.normal;
-  // URL de retorno com numero do pedido para verificacao automatica
-  const returnUrl = window.location.origin + '?pedido=' + ipPedidoAtual.number;
-  const checkoutUrl = baseLink;
-  // Salva pedido no localStorage para verificar ao voltar
-  try { localStorage.setItem('ultimo_pedido', ipPedidoAtual.number); } catch(e) {}
+  const checkoutUrl = baseLink + '?ref=' + ipPedidoAtual.number;
 
   // Abre checkout em nova aba
   window.open(checkoutUrl, '_blank');
@@ -1502,14 +1316,11 @@ async function irParaCheckout() {
 
 async function verificarPagamentoIP() {
   if (!ipPedidoAtual) return;
-  const btn = document.querySelector('.btn-ip-verificar');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Verificando...'; }
   try {
-    const r = await fetch('/api/pedidos/' + ipPedidoAtual.number);
+    const r = await fetch('/api/pedidos/' + ipPedidoAtual.number + '?status=all');
     const pedido = await r.json();
     if (pedido.status === 'aprovado' && pedido.ticketNumber) {
-      const r2 = await fetch('/api/tickets');
-      const tickets = await r2.json();
+      const tickets = await fetch('/api/tickets').then(r => r.json());
       const ticket = tickets.find(t => t.number === pedido.ticketNumber);
       if (ticket) {
         currentTicket = ticket;
@@ -1521,13 +1332,9 @@ async function verificarPagamentoIP() {
         return;
       }
     }
-    // Nao aprovado ainda - mas verifica se chegou via redirect do infinitepay
-    // Tenta aprovar automaticamente se voltou do checkout
-    showToast('⏳ Aguardando confirmação. O ingresso também será enviado por e-mail.');
-    if (btn) { btn.textContent = '🔍 VERIFICAR NOVAMENTE'; btn.disabled = false; }
+    showToast('⏳ Pagamento ainda não confirmado. Tente novamente em instantes.');
   } catch {
-    showToast('Erro ao verificar. Tente novamente.');
-    if (btn) { btn.textContent = '🔍 VERIFICAR PAGAMENTO'; btn.disabled = false; }
+    showToast('Erro ao verificar pagamento.');
   }
 }
 
@@ -1537,54 +1344,36 @@ function fecharIPModal() {
 }
 
 // Verifica se voltou do checkout (URL tem ?pedido=...)
-async function verificarPedidoSalvo(numPedido) {
-  if (!numPedido) return;
-  try {
-    const r = await fetch('/api/pedidos/' + numPedido);
-    if (!r.ok) return;
-    const pedido = await r.json();
-    if (pedido.status === 'aprovado' && pedido.ticketNumber) {
-      const r2 = await fetch('/api/tickets');
-      const tickets = await r2.json();
-      const ticket = tickets.find(t => t.number === pedido.ticketNumber);
-      if (ticket) {
-        currentTicket = ticket;
-        renderTicket(ticket);
-        showPage('meu-ingresso');
-        SFX.approved();
-        showToast('🎉 Ingresso gerado com sucesso!');
-        try { localStorage.removeItem('ultimo_pedido'); } catch(e) {}
-        return true;
-      }
-    } else if (pedido.status === 'pendente') {
-      // Mostra tela de aguardando
-      ipPedidoAtual = pedido;
-      document.getElementById('ip-pedido-num').textContent = '#' + pedido.number;
-      document.getElementById('ip-screen-metodo').style.display = 'none';
-      document.getElementById('ip-screen-aguard').style.display = 'block';
-      document.getElementById('ip-modal-bg').style.display = 'flex';
-      showToast('⏳ Pagamento pendente. Clique em Verificar após pagar.');
-    }
-  } catch(e) { console.log('Erro ao verificar pedido:', e.message); }
-  return false;
-}
-
 window.addEventListener('load', () => {
-  // Verifica pedido na URL (?pedido=xxx)
   const params = new URLSearchParams(window.location.search);
   const numPedido = params.get('pedido');
   if (numPedido) {
     history.replaceState({}, '', window.location.pathname);
-    setTimeout(() => verificarPedidoSalvo(numPedido), 1500);
-    return;
+    setTimeout(async () => {
+      try {
+        const r = await fetch('/api/pedidos/' + numPedido);
+        const pedido = await r.json();
+        if (pedido.status === 'aprovado' && pedido.ticketNumber) {
+          const tickets = await fetch('/api/tickets').then(r => r.json());
+          const ticket = tickets.find(t => t.number === pedido.ticketNumber);
+          if (ticket) {
+            currentTicket = ticket;
+            renderTicket(ticket);
+            showPage('meu-ingresso');
+            SFX.approved();
+            showToast('🎉 Ingresso gerado com sucesso!');
+          }
+        } else {
+          // Ainda pendente — abre modal de verificação
+          ipPedidoAtual = pedido;
+          document.getElementById('ip-pedido-num').textContent = '#' + pedido.number;
+          document.getElementById('ip-screen-metodo').style.display = 'none';
+          document.getElementById('ip-screen-aguard').style.display = 'block';
+          document.getElementById('ip-modal-bg').style.display = 'flex';
+        }
+      } catch(e) { console.log('Erro ao verificar pedido de retorno'); }
+    }, 1500);
   }
-  // Verifica pedido salvo no localStorage (caso feche e reabra)
-  try {
-    const saved = localStorage.getItem('ultimo_pedido');
-    if (saved) {
-      setTimeout(() => verificarPedidoSalvo(saved), 2000);
-    }
-  } catch(e) {}
 });
 
 // pixTab removido - novo sistema de telas
@@ -1647,7 +1436,8 @@ function gerarBRCode(chave, nome, cidade, valor) {
 }
 
 function drawQRPix(text, canvasId) {
-  gerarQRReal(text, canvasId, 180, '#00a07a');
+  // text aqui é o BRCode completo
+  renderQRCode(text, canvasId, 180, '#00a07a', '#ffffff');
 }
 
 // Renderiza QR Code real usando algoritmo Reed-Solomon simplificado
@@ -1783,10 +1573,32 @@ function renderTicket(t) {
   drawQR(qrContent, 'qr-canvas');
 }
 
-// ===== QR CODE REAL =====
+// ===== QR CODE =====
 function drawQR(code, canvasId) {
-  // Usa QR Code real e escanavel
-  gerarQRReal(code, canvasId, 80, '#111111');
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  const sz = 80, cells = 21, cell = Math.floor(sz / cells);
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, sz, sz);
+  ctx.fillStyle = '#111';
+  const seed = code.split('').reduce((a, c, i) => a + c.charCodeAt(0) * (i + 7), 0);
+  function pseudo(r, c) { return ((seed * 6364136223846793005n + 1442695040888963407n) % (2n ** 64n)) > 0n; }
+  function bit(r, c) {
+    const v = (seed ^ (r * 31337 + c * 7919)) * 2654435761;
+    return (v >>> 16) % 3 !== 0;
+  }
+  // finder pattern TL
+  const fp = (ox, oy) => {
+    ctx.fillRect(ox*cell, oy*cell, 7*cell, 7*cell);
+    ctx.fillStyle='#fff'; ctx.fillRect((ox+1)*cell, (oy+1)*cell, 5*cell, 5*cell);
+    ctx.fillStyle='#111'; ctx.fillRect((ox+2)*cell, (oy+2)*cell, 3*cell, 3*cell);
+  };
+  // data
+  for (let r=0;r<cells;r++) for (let c=0;c<cells;c++) {
+    const inFP = (r<8&&c<8)||(r<8&&c>cells-9)||(r>cells-9&&c<8);
+    if (!inFP && bit(r,c)) ctx.fillRect(c*cell+1,r*cell+1,cell-1,cell-1);
+  }
+  ctx.fillStyle='#111';
+  fp(0,0); fp(cells-7, 0); fp(0, cells-7);
 }
 
 // ===== VALIDAR =====
@@ -1797,9 +1609,7 @@ async function validarIngresso(fromCamera) {
   const camStatus = document.getElementById('cam-status');
 
   try {
-    // Envia codigo completo (pode ser numero ou numero:hash)
-    const codeClean = code.replace('#','').trim();
-    const r = await fetch(API + '/api/validate/' + encodeURIComponent(codeClean), { method:'POST' });
+    const r = await fetch(API + '/api/validate/' + code, { method:'POST' });
     const data = await r.json();
     if (data.valid) {
       SFX.validateOk();
@@ -1890,39 +1700,19 @@ function updateAdminStats() {
   document.getElementById('st-normal').textContent = allTickets.filter(t=>t.typeKey==='normal').length;
   document.getElementById('st-vip').textContent = allTickets.filter(t=>t.typeKey==='vip').length;
   document.getElementById('st-meia').textContent = allTickets.filter(t=>t.typeKey==='meia').length;
-
-  // Badge total
-  const badge = document.getElementById('badge-tickets');
-  if (badge) badge.textContent = allTickets.length;
-
   const list = document.getElementById('ticket-list');
-  if (!list) return;
   if (!allTickets.length) {
-    list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Nenhum ingresso emitido ainda</div>';
+    list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Nenhum ingresso</div>';
     return;
   }
-
-  const fmtDate = (d) => {
-    if (!d) return '';
-    return new Date(d).toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
-  };
-
-  list.innerHTML = [...allTickets].reverse().map(t => `
-    <div class="tl-row" style="flex-direction:column;align-items:flex-start;padding:10px 12px;gap:4px">
-      <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
-        <span class="tl-num">#${t.number}</span>
-        <span class="badge ${t.used?'used':'valid'}">${t.used ? '✅ Usado' : '🟢 Válido'}</span>
-      </div>
-      <div style="font-size:13px;color:var(--text);font-weight:600">${t.name}</div>
-      <div style="font-size:11px;color:var(--muted)">📧 ${t.email}</div>
-      <div style="font-size:11px;color:var(--muted)">🪪 ${t.cpf || '—'}</div>
-      <div style="display:flex;justify-content:space-between;width:100%;margin-top:2px">
-        <span style="font-size:11px;color:var(--success)">🎟 ${t.type} • ${t.price}</span>
-        <span style="font-size:10px;color:var(--muted)">${fmtDate(t.createdAt)}</span>
-      </div>
-      <div style="font-size:10px;color:rgba(255,255,255,0.3)">Pagamento: ${t.pagamento || 'pix'} • QR: ${t.number}</div>
-    </div>
-  `).join('');
+  list.innerHTML = [...allTickets].reverse().map(t =>
+    `<div class="tl-row">
+      <span class="tl-num">#${t.number}</span>
+      <span class="tl-name">${t.name}</span>
+      <span class="tl-type">${t.type}</span>
+      <span class="badge ${t.used?'used':'valid'}">${t.used?'Usado':'Válido'}</span>
+    </div>`
+  ).join('');
 }
 
 // ===== UTILS =====
@@ -2103,345 +1893,6 @@ function updateBadgeCount() {
 
 async function salvarPagamento() { salvarQRCodes(); }
 async function salvarMetodos() { salvarQRCodes(); }
-
-
-// ===== BUSCA DE INGRESSO =====
-let buscaTabAtual = 'num';
-
-function setBuscaTab(tab) {
-  buscaTabAtual = tab;
-  ['num','cpf','email'].forEach(t => {
-    document.getElementById('btab-' + t).classList.toggle('active', t === tab);
-  });
-  const input = document.getElementById('busca-input');
-  const placeholders = { num: 'Ex: 100001', cpf: 'Ex: 123.456.789-00', email: 'seu@email.com' };
-  input.placeholder = placeholders[tab];
-  input.value = '';
-  document.getElementById('busca-resultados').innerHTML = '';
-  input.focus();
-}
-
-async function buscarIngresso() {
-  const val = document.getElementById('busca-input').value.trim();
-  if (!val) { showToast('Digite um valor para buscar!'); return; }
-
-  const res = document.getElementById('busca-resultados');
-  res.innerHTML = '<div style="text-align:center;padding:12px;color:var(--muted);font-size:13px">🔍 Buscando...</div>';
-
-  try {
-    // Busca todos os tickets e filtra localmente (mais confiavel)
-    const r = await fetch('/api/tickets');
-    if (!r.ok) throw new Error('Erro ' + r.status);
-    const todos = await r.json();
-
-    let tickets = [];
-    if (buscaTabAtual === 'num') {
-      const num = val.replace('#','').trim();
-      tickets = todos.filter(t => t.number === num);
-    } else if (buscaTabAtual === 'cpf') {
-      const cpfLimpo = val.replace(/\D/g,'');
-      tickets = todos.filter(t => t.cpf && t.cpf.replace(/\D/g,'') === cpfLimpo);
-    } else {
-      tickets = todos.filter(t => t.email && t.email.toLowerCase() === val.toLowerCase());
-    }
-
-    if (!tickets.length) {
-      res.innerHTML = '<div style="text-align:center;padding:20px;color:#e94560;font-size:14px">❌ Nenhum ingresso encontrado<br><span style="font-size:12px;color:var(--muted);margin-top:6px;display:block">Verifique os dados e tente novamente</span></div>';
-      SFX.error();
-      return;
-    }
-
-    SFX.validateOk();
-    res.innerHTML = tickets.map(t => `
-      <div class="busca-resultado-card" onclick="verIngresso('${t.number}')">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <span class="br-num">#${t.number}</span>
-          <span style="font-size:11px;padding:2px 8px;border-radius:20px;font-weight:700;
-            ${t.used ? 'background:rgba(233,69,96,0.15);color:#e94560' : 'background:rgba(0,200,150,0.15);color:#00c896'}">
-            ${t.used ? '⚠️ USADO' : '✅ VÁLIDO'}
-          </span>
-        </div>
-        <div class="br-nome">${t.name}</div>
-        <div class="br-info">🎟 ${t.type} • 💰 ${t.price}</div>
-        <div class="br-info">📧 ${t.email}</div>
-        <div class="br-info">🪪 ${t.cpf || '—'}</div>
-        <div style="font-size:11px;color:var(--accent);margin-top:6px;font-weight:600">
-          ${t.used ? '⚠️ Este ingresso já foi utilizado na entrada' : '👆 Clique para ver o QR Code completo'}
-        </div>
-      </div>
-    `).join('');
-
-    if (tickets.length === 1 && !tickets[0].used) {
-      setTimeout(() => verIngresso(tickets[0].number), 600);
-    }
-
-  } catch(e) {
-    console.error('Busca error:', e);
-    res.innerHTML = '<div style="text-align:center;padding:12px;color:#e94560;font-size:13px">❌ Erro ao buscar: ' + e.message + '</div>';
-    SFX.error();
-  }
-}
-
-async function verIngresso(number) {
-  try {
-    const r = await fetch('/api/tickets');
-    if (!r.ok) throw new Error('Erro ' + r.status);
-    const tickets = await r.json();
-    const ticket = tickets.find(t => t.number === number);
-    if (!ticket) {
-      showToast('Ingresso #' + number + ' não encontrado.');
-      return;
-    }
-    currentTicket = ticket;
-    // Garante que config esta carregado antes de renderizar
-    if (!config.eventName) await loadConfig();
-    renderTicket(ticket);
-    document.getElementById('no-ticket').style.display = 'none';
-    document.getElementById('ticket-display').style.display = 'block';
-    document.getElementById('busca-resultados').innerHTML =
-      '<div style="text-align:center;padding:8px;color:var(--success);font-size:12px">✅ Ingresso #' + number + ' carregado abaixo!</div>';
-    document.getElementById('busca-input').value = '';
-    setTimeout(() => {
-      document.getElementById('ticket-display').scrollIntoView({behavior:'smooth', block:'start'});
-    }, 200);
-    SFX.approved();
-  } catch(e) {
-    showToast('Erro ao carregar ingresso: ' + e.message);
-    SFX.error();
-  }
-}
-
-
-// ===== IMPRESSAO PROFISSIONAL =====
-function abrirImpressao() {
-  if (!currentTicket) { showToast('Nenhum ingresso para imprimir!'); return; }
-  const t = currentTicket;
-
-  // Preenche os dados
-  document.getElementById('pa-nome').textContent = t.name || '—';
-  document.getElementById('pa-tipo').textContent = t.type || '—';
-  document.getElementById('pa-local').textContent = config.eventLocal || '—';
-  document.getElementById('pa-preco').textContent = t.price || '—';
-  document.getElementById('pa-cpf').textContent = t.cpf || '—';
-  document.getElementById('pa-pgto').textContent = (t.pagamento || 'pix').toUpperCase();
-  document.getElementById('pa-numero').textContent = '#' + t.number;
-  document.getElementById('pa-nome-evento').textContent = config.eventName || 'GalzGames';
-  document.getElementById('pa-data-evento').textContent = config.eventDate || '';
-
-  // Imagem de fundo
-  const bgImg = document.getElementById('pa-bg-img');
-  const ticketBg = document.getElementById('ticket-bg');
-  if (ticketBg && ticketBg.src) bgImg.src = ticketBg.src;
-
-  // QR Code real
-  const qrContent = t.qrCode || t.number;
-  gerarQRReal(qrContent, 'pa-qr-canvas', 90, '#111111');
-
-  // Pequeno delay para garantir que o QR foi desenhado
-  setTimeout(() => {
-    document.getElementById('print-modal-bg').classList.add('open');
-  }, 200);
-  SFX.save();
-}
-
-function fecharPrintModal() {
-  document.getElementById('print-modal-bg').classList.remove('open');
-}
-
-function desenharQRImpressao(text, canvasId) {
-  gerarQRReal(text, canvasId, 90, '#111111');
-}
-
-function executarImpressao() {
-  const printArea = document.getElementById('print-area');
-  const printWindow = window.open('', '_blank', 'width=520,height=700');
-  
-  // Captura imagem de fundo como base64
-  const bgImg = document.getElementById('pa-bg-img');
-  const bgSrc = bgImg ? bgImg.src : '/images/banner.jpeg';
-  const logoImg = document.querySelector('.pa-logo');
-  const logoSrc = logoImg ? logoImg.src : '/images/logo.png';
-  
-  // Captura QR como base64
-  const qrCanvas = document.getElementById('pa-qr-canvas');
-  const qrDataUrl = qrCanvas ? qrCanvas.toDataURL() : '';
-  
-  const t = currentTicket;
-  const eventName = document.getElementById('pa-nome-evento').textContent;
-  const eventDate = document.getElementById('pa-data-evento').textContent;
-
-  printWindow.document.write(`<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Ingresso #${t.number} - ${eventName}</title>
-<style>
-  @page { size: A6 landscape; margin: 0; }
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  body { width: 148mm; height: 105mm; overflow: hidden; font-family: Arial, sans-serif; background: #fff; }
-  .ticket { width: 148mm; height: 105mm; display: flex; flex-direction: column; }
-  .top { position: relative; height: 45mm; overflow: hidden; flex-shrink: 0; }
-  .top-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .top-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.78)); }
-  .top-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; padding: 10px 14px; height: 100%; align-items: flex-end; padding-bottom: 12px; }
-  .logo { width: 36px; height: 36px; border-radius: 50%; border: 2px solid #ffd700; object-fit: cover; }
-  .evento-nome { font-size: 16px; font-weight: 900; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,0.8); letter-spacing: 0.5px; }
-  .evento-data { font-size: 10px; color: rgba(255,255,255,0.85); margin-top: 2px; }
-  .perf { display: flex; align-items: center; height: 14px; background: #fff; flex-shrink: 0; }
-  .perf-dot { width: 14px; height: 14px; border-radius: 50%; background: #f0f0f0; flex-shrink: 0; }
-  .perf-line { flex: 1; border-top: 2px dashed #ccc; }
-  .body { flex: 1; background: #fff; padding: 10px 14px 8px; display: flex; flex-direction: column; justify-content: space-between; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px; }
-  .field-label { font-size: 7px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 2px; }
-  .field-val { font-size: 11px; font-weight: 700; color: #111; }
-  .field-val.preco { color: #e94560; }
-  .field-val.small { font-size: 9px; }
-  .bottom { display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #ddd; padding-top: 8px; }
-  .num-label { font-size: 7px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
-  .num-val { font-family: 'Courier New', monospace; font-size: 18px; font-weight: 700; color: #111; letter-spacing: 3px; }
-  .qr { border: 1px solid #eee; border-radius: 4px; }
-  .footer { background: #f5f5f5; padding: 5px 14px; text-align: center; font-size: 8px; color: #888; border-top: 1px solid #e8e8e8; flex-shrink: 0; }
-  @media print {
-    body { width: 148mm; height: 105mm; }
-    .ticket { page-break-after: avoid; }
-  }
-</style>
-</head>
-<body>
-<div class="ticket">
-  <div class="top">
-    <img class="top-bg" src="${bgSrc}" alt="" crossorigin="anonymous" />
-    <div class="top-overlay"></div>
-    <div class="top-content">
-      <img class="logo" src="${logoSrc}" alt="Logo" crossorigin="anonymous" />
-      <div>
-        <div class="evento-nome">${eventName}</div>
-        <div class="evento-data">${eventDate}</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="perf">
-    <div class="perf-dot"></div>
-    <div class="perf-line"></div>
-    <div class="perf-dot"></div>
-  </div>
-
-  <div class="body">
-    <div class="grid">
-      <div>
-        <div class="field-label">Titular</div>
-        <div class="field-val">${t.name}</div>
-      </div>
-      <div>
-        <div class="field-label">Tipo</div>
-        <div class="field-val">${t.type}</div>
-      </div>
-      <div>
-        <div class="field-label">Valor</div>
-        <div class="field-val preco">${t.price}</div>
-      </div>
-      <div>
-        <div class="field-label">CPF</div>
-        <div class="field-val small">${t.cpf || '—'}</div>
-      </div>
-      <div>
-        <div class="field-label">Local</div>
-        <div class="field-val small">${config.eventLocal || '—'}</div>
-      </div>
-      <div>
-        <div class="field-label">Pagamento</div>
-        <div class="field-val small">${(t.pagamento||'pix').toUpperCase()}</div>
-      </div>
-    </div>
-
-    <div class="bottom">
-      <div>
-        <div class="num-label">Nº do Ingresso</div>
-        <div class="num-val">#${t.number}</div>
-      </div>
-      <img class="qr" src="${qrDataUrl}" width="70" height="70" alt="QR Code" />
-    </div>
-  </div>
-
-  <div class="footer">
-    GalzGames Ingressos • ingressos.retrogamerday.com.br • Apresente na entrada
-  </div>
-</div>
-
-<script>
-  window.onload = function() {
-    setTimeout(function() { window.print(); window.close(); }, 800);
-  };
-<\/script>
-</body>
-</html>`);
-  
-  printWindow.document.close();
-  fecharPrintModal();
-}
-
-
-// ===== QR CODE REAL (qrcode-generator) =====
-function gerarQRReal(text, canvasId, size, darkColor) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  size = size || 80;
-  darkColor = darkColor || '#111111';
-
-  try {
-    // Usa qrcode-generator (expoe funcao global qrcode)
-    if (typeof qrcode !== 'undefined') {
-      const qr = qrcode(0, 'M');
-      qr.addData(text);
-      qr.make();
-      const modules = qr.getModuleCount();
-      const ctx = canvas.getContext('2d');
-      canvas.width = size;
-      canvas.height = size;
-      const cellSize = size / modules;
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, size, size);
-      ctx.fillStyle = darkColor;
-      for (let row = 0; row < modules; row++) {
-        for (let col = 0; col < modules; col++) {
-          if (qr.isDark(row, col)) {
-            ctx.fillRect(
-              Math.floor(col * cellSize),
-              Math.floor(row * cellSize),
-              Math.ceil(cellSize),
-              Math.ceil(cellSize)
-            );
-          }
-        }
-      }
-      return true;
-    }
-  } catch(e) {
-    console.error('QR gerarQRReal erro:', e.message);
-  }
-
-  // Fallback: tenta com QRCode class (qrcodejs)
-  try {
-    if (typeof QRCode !== 'undefined') {
-      canvas.width = size; canvas.height = size;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,size,size);
-      const div = document.createElement('div');
-      new QRCode(div, { text, width: size, height: size,
-        colorDark: darkColor, colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.M });
-      setTimeout(() => {
-        const img = div.querySelector('img');
-        if (img) { const i = new Image(); i.onload=()=>ctx.drawImage(i,0,0,size,size); i.src=img.src; }
-      }, 100);
-      return true;
-    }
-  } catch(e2) {}
-
-  console.warn('Nenhuma lib QR disponivel para', canvasId);
-  return false;
-}
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -2890,23 +2341,16 @@ function scanFrame() {
 
       document.getElementById('cam-status').textContent = '✅ QR Code detectado!';
 
-      // Extrai numero do QR Code
+      // Extrai número do QR Code (pode ser só o número ou URL com número)
       let number = code.data.trim();
-      // Formato: "100001:HASH" (nosso formato seguro)
-      if (number.includes(':')) {
-        // Passa o formato completo para validacao incluindo hash
-        number = number; // mantém numero:hash para validacao segura
-      } else {
-        // Limpa formato URL ou outros
-        if (number.includes('/')) number = number.split('/').pop();
-        number = number.replace('#','');
-      }
+      // Se for URL, pega o último segmento
+      if (number.includes('/')) number = number.split('/').pop();
+      // Se for só dígitos ou começa com #, limpa
+      number = number.replace('#','').replace(/\D/g,'');
 
       if (number) {
-        // Para formato numero:hash, extrai so o numero para exibir
-        const numDisplay = number.split(':')[0];
         document.getElementById('code-input').value = number;
-        document.getElementById('cam-status').textContent = '⚡ Validando #' + numDisplay + '...';
+        document.getElementById('cam-status').textContent = '⚡ Validando #' + number + '...';
         validarIngresso(true);
       }
     }
@@ -3003,90 +2447,6 @@ window.showPage = function(id) {
         </div>
       </div>
 
-    </div>
-  </div>
-</div>
-
-
-<!-- MODAL DE IMPRESSAO -->
-<div id="print-modal-bg">
-  <div class="print-modal">
-    <div class="print-modal-header">
-      <span class="print-modal-title">🖨️ Imprimir Ingresso</span>
-      <button class="print-modal-close" onclick="fecharPrintModal()">✕</button>
-    </div>
-
-    <!-- INGRESSO PARA IMPRESSAO -->
-    <div id="print-area">
-      <!-- Topo com imagem de fundo -->
-      <div class="pa-top" id="pa-top">
-        <img id="pa-bg-img" class="pa-bg" src="/images/banner.jpeg" alt="" />
-        <div class="pa-overlay"></div>
-        <div class="pa-top-content">
-          <img src="/images/logo.png" class="pa-logo" alt="Logo" />
-          <div class="pa-evento">
-            <div class="pa-evento-nome" id="pa-nome-evento">Retro Gamer Day</div>
-            <div class="pa-evento-data" id="pa-data-evento">Sabado, 10 Mai 2025</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Perfuração -->
-      <div class="pa-perf">
-        <div class="pa-perf-dot"></div>
-        <div class="pa-perf-line"></div>
-        <div class="pa-perf-dot"></div>
-      </div>
-
-      <!-- Corpo do ingresso -->
-      <div class="pa-body">
-        <div class="pa-grid">
-          <div class="pa-field">
-            <div class="pa-label">Titular</div>
-            <div class="pa-value" id="pa-nome">—</div>
-          </div>
-          <div class="pa-field">
-            <div class="pa-label">Tipo</div>
-            <div class="pa-value" id="pa-tipo">—</div>
-          </div>
-          <div class="pa-field">
-            <div class="pa-label">Local</div>
-            <div class="pa-value" id="pa-local" style="font-size:11px">—</div>
-          </div>
-          <div class="pa-field">
-            <div class="pa-label">Valor</div>
-            <div class="pa-value" id="pa-preco" style="color:#e94560">—</div>
-          </div>
-          <div class="pa-field">
-            <div class="pa-label">CPF</div>
-            <div class="pa-value" id="pa-cpf" style="font-size:11px">—</div>
-          </div>
-          <div class="pa-field">
-            <div class="pa-label">Pagamento</div>
-            <div class="pa-value" id="pa-pgto" style="font-size:11px">—</div>
-          </div>
-        </div>
-
-        <div class="pa-bottom">
-          <div class="pa-numero">
-            <div class="pa-num-label">Nº do Ingresso</div>
-            <div class="pa-num-val" id="pa-numero">—</div>
-          </div>
-          <canvas id="pa-qr-canvas" width="90" height="90"></canvas>
-        </div>
-      </div>
-
-      <div class="pa-footer" id="pa-footer">
-        GalzGames Ingressos • ingressos.retrogamerday.com.br •
-        Apresente este ingresso na entrada do evento
-      </div>
-    </div>
-
-    <div class="print-modal-btns">
-      <button class="btn-imprimir-modal" onclick="executarImpressao()">
-        🖨️ IMPRIMIR AGORA
-      </button>
-      <button class="btn-fechar-print" onclick="fecharPrintModal()">Fechar</button>
     </div>
   </div>
 </div>
