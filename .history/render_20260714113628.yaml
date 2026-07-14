@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: galzgames-ingressos
+    env: node
+    plan: free
+    branch: main
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ADMIN_SENHA
+        value: "Suenia81@"
+      - key: QR_SECRET
+        value: "galzgames2025retrogamerday"

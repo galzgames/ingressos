@@ -1,0 +1,13 @@
+node_modules/
+.env
+data/*.json
+public/images/uploads/
+coverage/
+npm-debug.log
+dist/
+node_modules/
+data/tickets.json
+data/config.json
+public/images/uploads/
+.env
+*.log
