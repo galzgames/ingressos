@@ -1,13 +1,18 @@
+# Node
 node_modules/
+
+# Environment
 .env
+
+# Local data and uploads
 data/*.json
 public/images/uploads/
+
+# Editor/history
+.history/
+
+# Build / logs
 coverage/
-npm-debug.log
 dist/
-node_modules/
-data/tickets.json
-data/config.json
-public/images/uploads/
-.env
+npm-debug.log
 *.log
