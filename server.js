@@ -255,7 +255,8 @@ function parseMultipart(req, cb) {
 
 // SERVER
 const server = http.createServer(async (req, res) => {
-  const { pathname } = url.parse(req.url, true);
+  const parsed = url.parse(req.url, true);
+  const { pathname, query } = parsed;
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -315,10 +316,10 @@ const server = http.createServer(async (req, res) => {
     }
     // GET /api/pedidos?status=pendente|aprovado|rejeitado|all
     if (pathname === '/api/pedidos' && req.method === 'GET') {
-      const statusFilter = parsed.query.status || 'pendente';
+      const statusFilter = query.status || 'pendente';
       const todos = await getPedidos();
-      const filtrados = statusFilter === 'all' 
-        ? todos 
+      const filtrados = statusFilter === 'all'
+        ? todos
         : todos.filter(p => p.status === statusFilter);
       return jsonRes(res, 200, filtrados);
     }
